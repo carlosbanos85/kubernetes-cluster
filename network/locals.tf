@@ -94,15 +94,5 @@ locals {
       min_port    = 443
       max_port    = 443
     },
-
-    # NodePort services range
-    {
-      description = "NodePort services"
-      source      = "0.0.0.0/0"
-      source_type = "CIDR_BLOCK"
-      protocol    = "6" # TCP
-      min_port    = 30000
-      max_port    = 32767
-    }
   ]
 }

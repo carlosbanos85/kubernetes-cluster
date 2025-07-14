@@ -1,0 +1,12 @@
+[Unit]
+Description=Install K3s
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/k3s-install.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

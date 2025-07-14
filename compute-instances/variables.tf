@@ -104,3 +104,15 @@ variable "cilium_version" {
   description = "Cilium version for Helm install"
   type        = string
 }
+
+variable "enable_ingress_controller" {
+  description = "Enable Cilium ingress controller"
+  type        = bool
+  default     = false
+}
+
+variable "cilium_lb_ip_pool" {
+  description = "IP pool for Cilium load balancer (for L2 announcements)"
+  type        = string
+  default     = ""
+}

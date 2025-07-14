@@ -120,7 +120,6 @@ runcmd:
   - firewall-cmd --permanent --add-port=4240/tcp # Cilium health
   - firewall-cmd --permanent --add-port=4244/tcp # Hubble gRPC
   - firewall-cmd --permanent --add-port=8472/udp # VXLAN
-  - firewall-cmd --permanent --add-port=30000-32767/tcp # NodePort
   - firewall-cmd --reload
 
   # Enable and start the k3s join service

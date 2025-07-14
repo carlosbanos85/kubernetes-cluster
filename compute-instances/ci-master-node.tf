@@ -29,9 +29,36 @@ resource "oci_core_instance" "kube_server_master" {
     user_data = base64encode(templatefile("${path.root}/compute-instances/cloud-init-config/cloud-init-master.yaml", {
       hostname       = var.master_hostname
       cluster_domain = var.cluster_domain
-      cluster_token  = var.cluster_token
-      cilium_version = var.cilium_version
-      vcn_cidr       = var.vcn_cidr
+
+      # Load configuration files
+      sysctl_config  = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-cilium.conf")
+      modules_config = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-cilium-modules.conf")
+
+      # Load service configurations
+      k3s_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
+      cilium_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
+
+      # Load and template scripts
+      k3s_install_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/k3s-install.sh", {
+        hostname       = var.master_hostname
+        cluster_domain = var.cluster_domain
+        cluster_token  = var.cluster_token
+      })
+
+      helm_install_script = file("${path.root}/compute-instances/cloud-init-config/scripts/helm-install.sh")
+
+      cilium_install_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/cilium-install.sh", {
+        hostname       = var.master_hostname
+        cilium_version = var.cilium_version
+      })
+
+      # Template the Cilium values.yaml file
+      cilium_values_config = templatefile("${path.root}/compute-instances/cloud-init-config/configs/cilium-values.yaml", {
+        cluster_name               = var.project_name
+        master_ip                  = var.master_hostname # Use hostname for internal communication
+        ingress_controller_enabled = var.enable_ingress_controller
+        lb_ip_pool                 = var.cilium_lb_ip_pool != "" ? var.cilium_lb_ip_pool : "192.168.101.25"
+      })
     }))
   }
 

@@ -1,0 +1,12 @@
+[Unit]
+Description=Install Cilium CNI
+After=k3s-install.service
+Requires=k3s-install.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/cilium-install.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

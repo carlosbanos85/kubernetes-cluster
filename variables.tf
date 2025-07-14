@@ -136,3 +136,19 @@ variable "cilium_version" {
   description = "Cilium version for Helm install"
   type        = string
 }
+
+variable "enable_ingress_controller" {
+  description = "Enable Cilium ingress controller"
+  type        = bool
+  default     = false
+}
+
+variable "cilium_lb_ip_pool" {
+  description = "IP pool for Cilium load balancer (CIDR or IP range)"
+  type        = string
+  default     = ""
+  validation {
+    condition     = var.cilium_lb_ip_pool == "" || can(cidrhost(var.cilium_lb_ip_pool, 0)) || can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$", var.cilium_lb_ip_pool))
+    error_message = "Cilium LB IP pool must be a valid CIDR block or IP address."
+  }
+}
