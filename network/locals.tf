@@ -25,9 +25,9 @@ locals {
       max_port    = 6443
     },
 
-    # Kube Server kubelet
+    # Kubelet API
     {
-      description = "Kube Server kubelet"
+      description = "Kubelet API"
       source      = var.vcn_cidr
       source_type = "CIDR_BLOCK"
       protocol    = "6" # TCP
@@ -35,9 +35,39 @@ locals {
       max_port    = 10250
     },
 
-    # Flannel VXLAN
+    # Cilium health checks
     {
-      description = "Flannel VXLAN"
+      description = "Cilium health checks"
+      source      = var.vcn_cidr
+      source_type = "CIDR_BLOCK"
+      protocol    = "6" # TCP
+      min_port    = 4240
+      max_port    = 4240
+    },
+
+    # Cilium Hubble gRPC API
+    {
+      description = "Cilium Hubble gRPC API"
+      source      = var.vcn_cidr
+      source_type = "CIDR_BLOCK"
+      protocol    = "6" # TCP
+      min_port    = 4244
+      max_port    = 4244
+    },
+
+    # Cilium Hubble Relay
+    {
+      description = "Cilium Hubble Relay"
+      source      = var.vcn_cidr
+      source_type = "CIDR_BLOCK"
+      protocol    = "6" # TCP
+      min_port    = 4245
+      max_port    = 4245
+    },
+
+    # Cilium VXLAN tunnel
+    {
+      description = "Cilium VXLAN tunnel"
       source      = var.vcn_cidr
       source_type = "CIDR_BLOCK"
       protocol    = "17" # UDP

@@ -27,10 +27,11 @@ resource "oci_core_instance" "kube_server_master" {
   metadata = {
     ssh_authorized_keys = var.ssh_public_key
     user_data = base64encode(templatefile("${path.root}/compute-instances/cloud-init-config/cloud-init-master.yaml", {
-      hostname          = var.master_hostname
-      cluster_domain    = var.cluster_domain
-      k3s_disable_flags = local.k3s_disable_flags
-      vcn_cidr          = var.vcn_cidr
+      hostname       = var.master_hostname
+      cluster_domain = var.cluster_domain
+      cluster_token  = var.cluster_token
+      cilium_version = var.cilium_version
+      vcn_cidr       = var.vcn_cidr
     }))
   }
 

@@ -72,9 +72,10 @@ variable "vcn_cidr" {
   type        = string
 }
 
-variable "k3s_disable_flags" {
-  description = "List of k3s components to disable"
-  type        = list(string)
+variable "cluster_token" {
+  description = "Cluster token"
+  type        = string
+  sensitive   = true
 }
 
 variable "cluster_domain" {
@@ -96,4 +97,10 @@ variable "worker_hostname" {
 variable "common_tags" {
   description = "Common tags to apply to all resources"
   type        = map(string)
+}
+
+# Cilium
+variable "cilium_version" {
+  description = "Cilium version for Helm install"
+  type        = string
 }

@@ -95,19 +95,6 @@ variable "worker_count" {
   }
 }
 
-# K3s Configuration
-variable "k3s_disable_flags" {
-  description = "List of K3s components to disable on startup"
-  type        = list(string)
-  validation {
-    condition = alltrue([
-      for component in var.k3s_disable_flags :
-      contains(["traefik", "servicelb", "metrics-server", "local-storage"], component)
-    ])
-    error_message = "Only traefik, servicelb, metrics-server, and local-storage can be disabled."
-  }
-}
-
 variable "cluster_domain" {
   description = "Cluster domain suffix for internal DNS"
   type        = string
@@ -135,4 +122,17 @@ variable "ssh_public_key" {
     condition     = can(regex("^(ssh-rsa|ssh-ed25519|ecdsa-sha2-nistp256|ecdsa-sha2-nistp384|ecdsa-sha2-nistp521)", var.ssh_public_key))
     error_message = "SSH public key must be in valid format (ssh-rsa, ssh-ed25519, or ecdsa)."
   }
+}
+
+# Cluster k3s token
+variable "cluster_token" {
+  description = "Cluster token"
+  type        = string
+  sensitive   = true
+}
+
+# Cilium
+variable "cilium_version" {
+  description = "Cilium version for Helm install"
+  type        = string
 }

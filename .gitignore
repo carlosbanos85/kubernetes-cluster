@@ -25,3 +25,12 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+
+# Terraform state files
+terraform.tfstate
+terraform.tfstate.backup
+*.tfstate.*
+*.tfstate.backup.*
+
+# Cilium
+cilium_version = var.cilium_version

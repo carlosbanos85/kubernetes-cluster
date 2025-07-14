@@ -46,12 +46,13 @@ module "compute_instances" {
   boot_volume_size_gb = var.boot_volume_size_gb
   worker_count        = var.worker_count
   ssh_public_key      = var.ssh_public_key
-  k3s_disable_flags   = var.k3s_disable_flags
   cluster_domain      = var.cluster_domain
   master_hostname     = var.master_hostname
   worker_hostname     = var.worker_hostname
+  cilium_version      = var.cilium_version
   vcn_cidr            = var.vcn_cidr
   common_tags         = local.common_tags
+  cluster_token       = var.cluster_token
 
   # Network resources from network module
   subnet_id                 = module.network.subnet_id

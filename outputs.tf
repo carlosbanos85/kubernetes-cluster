@@ -102,8 +102,7 @@ output "cluster_summary" {
     subnet_cidr = var.subnet_cidr
 
     # K3s configuration
-    cluster_domain      = var.cluster_domain
-    disabled_components = var.k3s_disable_flags
+    cluster_domain = var.cluster_domain
 
     # Free tier utilization
     free_tier_ocpu_usage    = "${(1 + var.worker_count) * var.instance_ocpus}/4"

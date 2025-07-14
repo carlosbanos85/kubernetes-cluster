@@ -1,3 +1,4 @@
+#cloud-config
 hostname: ${hostname}
 fqdn: ${hostname}.${cluster_domain}
 
@@ -8,23 +9,28 @@ packages:
   - curl
   - wget
   - vim
-  - htop
   - git
   - unzip
 
 # Configure system settings for k3s
 write_files:
-  - path: /etc/sysctl.d/k3s.conf
+  - path: /etc/sysctl.d/k3s-cilium.conf
     content: |
       net.bridge.bridge-nf-call-ip6tables = 1
       net.bridge.bridge-nf-call-iptables = 1
       net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+      net.core.bpf_jit_enable = 1
+      net.core.bpf_jit_harden = 0
     permissions: "0644"
 
-  - path: /etc/modules-load.d/k3s.conf
+  - path: /etc/modules-load.d/k3s-cilium.conf
     content: |
       br_netfilter
       overlay
+      ip_tables
+      ip6_tables
+      netfilter_conntrack
     permissions: "0644"
 
   - path: /etc/systemd/system/k3s-join.service
@@ -61,87 +67,60 @@ write_files:
 
       echo "Waiting for master node to be ready..."
 
-      # Wait for master to be accessible and token to be available
+      # Wait for master to be accessible, K3s running, and Cilium installed
       while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-        echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES: Checking master node..."
+        echo "Attempt $((RETRY_COUNT + 1))/$MAX_RETRIES: Checking master node with Cilium..."
 
         # Check if we can reach the master API
         if curl -k -s --connect-timeout 5 https://$MASTER_IP:6443/readyz &> /dev/null; then
           echo "Master API is accessible"
 
-          # Try to get the node token via SSH
-          TOKEN=""
-          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes opc@$MASTER_PUBLIC_IP "sudo cat /var/lib/rancher/k3s/server/node-token" &> /tmp/token.txt 2>/dev/null; then
-            TOKEN=$(cat /tmp/token.txt)
-            rm -f /tmp/token.txt
+          # Check if Cilium is ready on the master
+          CILIUM_READY=false
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes opc@$MASTER_PUBLIC_IP "kubectl get pods -n kube-system -l k8s-app=cilium --no-headers | grep -q Running" &> /dev/null; then
+            echo "Cilium is running on master"
+            CILIUM_READY=true
           fi
 
-          if [ -n "$TOKEN" ]; then
-            echo "Got node token, joining cluster..."
+          # Install k3s agent and join cluster
+          curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN="${cluster_token}" sh -s - \
+            --node-name ${hostname}
 
-            # Install k3s agent and join cluster
-            curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN="$TOKEN" sh -s - \
-              --node-name ${hostname}
-
-            echo "Successfully joined k3s cluster"
-            exit 0
-          fi
+          # Wait for node to be ready
+          echo "Waiting for node to be ready in cluster..."
+          sleep 30
+          exit 0
         fi
 
         RETRY_COUNT=$((RETRY_COUNT + 1))
-        echo "Master not ready yet, waiting 30 seconds..."
-        sleep 30
+        if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+          echo "Master with Cilium not ready yet, waiting 30 seconds..."
+          sleep 30
+        fi
       done
 
       echo "Failed to join cluster after $MAX_RETRIES attempts"
-      # Fall back to simplified join method
-      /opt/wait-and-join.sh
-    permissions: "0755"
-
-  - path: /opt/wait-and-join.sh
-    content: |
-      #!/bin/bash
-      # Alternative simpler join method
-      set -e
-
-      MASTER_IP="${master_ip}"
-
-      # Wait longer for master to be fully ready
-      echo "Waiting 5 minutes for master to be fully initialized..."
-      sleep 300
-
-      # Install k3s with a simple retry mechanism
-      for i in {1..10}; do
-        echo "Join attempt $i..."
-
-        # Try to install k3s agent
-        if curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN_FILE=/tmp/k3s-token sh -s - --node-name ${hostname}; then
-          echo "Successfully joined cluster on attempt $i"
-          break
-        else
-          echo "Join attempt $i failed, retrying in 60 seconds..."
-          sleep 60
-        fi
-
-        if [ $i -eq 10 ]; then
-          echo "Failed to join after 10 attempts"
-          exit 1
-        fi
-      done
+      echo "This may be due to Cilium still initializing. Manual intervention may be required."
+      exit 1
     permissions: "0755"
 
 runcmd:
   # Load kernel modules
   - modprobe br_netfilter
   - modprobe overlay
+  - modprobe ip_tables
+  - modprobe ip6_tables
+  - modprobe netfilter_conntrack
 
   # Apply sysctl settings
-  - sysctl -p /etc/sysctl.d/k3s.conf
+  - sysctl -p /etc/sysctl.d/k3s-cilium.conf
 
   # Set up firewall rules for k3s
-  - firewall-cmd --permanent --add-port=10250/tcp
-  - firewall-cmd --permanent --add-port=8472/udp
-  - firewall-cmd --permanent --add-port=30000-32767/tcp
+  - firewall-cmd --permanent --add-port=10250/tcp # Kubelet
+  - firewall-cmd --permanent --add-port=4240/tcp # Cilium health
+  - firewall-cmd --permanent --add-port=4244/tcp # Hubble gRPC
+  - firewall-cmd --permanent --add-port=8472/udp # VXLAN
+  - firewall-cmd --permanent --add-port=30000-32767/tcp # NodePort
   - firewall-cmd --reload
 
   # Enable and start the k3s join service

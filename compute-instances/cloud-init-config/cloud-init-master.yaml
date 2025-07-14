@@ -1,3 +1,4 @@
+#cloud-config
 hostname: ${hostname}
 fqdn: ${hostname}.${cluster_domain}
 
@@ -8,23 +9,27 @@ packages:
   - curl
   - wget
   - vim
-  - htop
   - git
   - unzip
 
 # Configure system settings for k3s
 write_files:
-  - path: /etc/sysctl.d/k3s.conf
+  - path: /etc/sysctl.d/k3s-cilium.conf
     content: |
       net.bridge.bridge-nf-call-ip6tables = 1
       net.bridge.bridge-nf-call-iptables = 1
-      net.ipv4.ip_forward = 1
+      net.ipv6.conf.all.forwarding = 1
+      net.core.bpf_jit_enable = 1
+      net.core.bpf_jit_harden = 0
     permissions: "0644"
 
-  - path: /etc/modules-load.d/k3s.conf
+  - path: /etc/modules-load.d/k3s-cilium.conf
     content: |
       br_netfilter
       overlay
+      ip_tables
+      ip6_tables
+      netfilter_conntrack
     permissions: "0644"
 
   - path: /etc/systemd/system/k3s-install.service
@@ -37,6 +42,22 @@ write_files:
       [Service]
       Type=oneshot
       ExecStart=/opt/k3s-install.sh
+      RemainAfterExit=yes
+
+      [Install]
+      WantedBy=multi-user.target
+    permissions: "0644"
+
+  - path: /etc/systemd/system/cilium-install.service
+    content: |
+      [Unit]
+      Description=Install Cilium CNI
+      After=k3s-install.service
+      Requires=k3s-install.service
+
+      [Service]
+      Type=oneshot
+      ExecStart=/opt/cilium-install.sh
       RemainAfterExit=yes
 
       [Install]
@@ -56,15 +77,16 @@ write_files:
 
       # Install k3s server
       curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
-        ${k3s_disable_flags} \
+        --disable=flannel,local-storage,metrics-server,servicelb,traefik \
+        --flannel-backend='none' \
+        --disable-network-policy \
+        --disable-cloud-controller \
+        --disable-kube-proxy \
         --node-name ${hostname} \
         --cluster-init \
-        --cluster-cidr="10.42.0.0/16" \
-        --service-cidr="10.43.0.0/16" \
-        --cluster-dns="10.43.0.10" \
         --cluster-domain="${cluster_domain}" \
         --write-kubeconfig-mode 644 \
-        --kube-apiserver-arg="--service-node-port-range=30000-32767"
+        K3S_TOKEN=${cluster_token}
 
       # Wait for k3s to be ready
       until kubectl get nodes &> /dev/null; do
@@ -84,25 +106,114 @@ write_files:
       echo "K3s master installation completed"
     permissions: "0755"
 
+  - path: /opt/cilium-install.sh
+    content: |
+      #!/bin/bash
+      set -e
+
+      export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+      # Install Helm
+      curl https://baltocdn.com/helm/signing.asc | gpg --dearmor | tee /usr/share/keyrings/helm.gpg > /dev/null
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/helm.gpg] https://baltocdn.com/helm/stable/debian/ all main" | tee /etc/apt/sources.list.d/helm-stable-debian.list
+      apt-get update
+      apt-get install -y helm
+
+      # Add Cilium Helm repository
+      helm repo add cilium https://helm.cilium.io/
+      helm repo update
+
+      # Wait for k3s to be fully ready
+      echo "Waiting for k3s to be fully ready..."
+      sleep 30
+
+      # Install Cilium
+      helm install cilium cilium/cilium \
+        --version ${cilium_version} \
+        --namespace kube-system \
+        --set k8sServiceHost=${hostname} \
+        --set k8sServicePort=6443 \
+        --set cluster.name=k3s-cluster \
+        --set cluster.id=1 \
+        --set ipam.mode=kubernetes \
+        --set enableIPv4Masquerade=true \
+        --set enableIPv6Masquerade=false \
+        --set operator.replicas=1 \
+        --set operator.rollOutPods=true \
+        --set hubble.enabled=true \
+        --set hubble.relay.enabled=true \
+        --set hubble.ui.enabled=true \
+        --set hubble.ui.rollOutPods=true \
+        --set prometheus.enabled=true \
+        --set operator.prometheus.enabled=true \
+        --set hubble.metrics.enabled="{dns,drop,tcp,flow,icmp,http}" \
+        --wait
+
+      # Wait for Cilium to be ready
+      echo "Waiting for Cilium to be ready..."
+      kubectl wait --for=condition=ready --all pods -n kube-system -l k8s-app=cilium --timeout=300s
+
+      # Install Cilium CLI for status checking
+      CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
+      CLI_ARCH=amd64
+      if [ "$(uname -m)" = "aarch64" ]; then CLI_ARCH=arm64; fi
+      curl -L --fail --remote-name-all https://github.com/cilium/cilium-cli/releases/download/$${CILIUM_CLI_VERSION}/cilium-linux-$${CLI_ARCH}.tar.gz{,.sha256sum}
+      sha256sum --check cilium-linux-$${CLI_ARCH}.tar.gz.sha256sum
+      tar xzvfC cilium-linux-$${CLI_ARCH}.tar.gz /usr/local/bin
+      rm cilium-linux-$${CLI_ARCH}.tar.gz{,.sha256sum}
+
+      # Verify Cilium installation
+      cilium status --wait
+
+      # Apply node labels for visibility
+      kubectl label node ${hostname} node-role.kubernetes.io/master=true --overwrite
+
+      echo "Cilium installation completed successfully"
+
+      # Save Cilium status for troubleshooting
+      cilium status > /tmp/cilium-status.txt
+
+      # Create a simple connectivity test
+      cat > /tmp/test-cilium-connectivity.sh << 'EOF'
+      #!/bin/bash
+      echo "Testing Cilium connectivity..."
+      cilium connectivity test --test-namespace cilium-test || echo "Connectivity test failed, but cluster may still be functional"
+      EOF
+      chmod +x /tmp/test-cilium-connectivity.sh
+
+    permissions: "0755"
+
 runcmd:
   # Load kernel modules
   - modprobe br_netfilter
   - modprobe overlay
+  - modprobe ip_tables
+  - modprobe ip6_tables
+  - modprobe netfilter_conntrack
 
   # Apply sysctl settings
-  - sysctl -p /etc/sysctl.d/k3s.conf
+  - sysctl -p /etc/sysctl.d/k3s-cilium.conf
+
+  # Set up firewall rules for k3s
+  - firewall-cmd --permanent --add-port=6443/tcp # K8s API
+  - firewall-cmd --permanent --add-port=10250/tcp # Kubelet
+  - firewall-cmd --permanent --add-port=4240/tcp # Cilium health
+  - firewall-cmd --permanent --add-port=4244/tcp # Hubble gRPC
+  - firewall-cmd --permanent --add-port=4245/tcp # Hubble Relay
+  - firewall-cmd --permanent --add-port=8472/udp # VXLAN
+  - firewall-cmd --permanent --add-port=2379-2380/tcp # ETCD
+  - firewall-cmd --permanent --add-port=80/tcp # HTTP
+  - firewall-cmd --permanent --add-port=443/tcp # HTTPS
+  - firewall-cmd --permanent --add-port=30000-32767/tcp # NodePort
+  - firewall-cmd --permanent --add-port=30080/tcp # Hubble UI
+  - firewall-cmd --reload
 
   # Enable and start the k3s installation service
   - systemctl enable k3s-install.service
   - systemctl start k3s-install.service
 
-  # Set up firewall rules for k3s
-  - firewall-cmd --permanent --add-port=6443/tcp
-  - firewall-cmd --permanent --add-port=10250/tcp
-  - firewall-cmd --permanent --add-port=8472/udp
-  - firewall-cmd --permanent --add-port=80/tcp
-  - firewall-cmd --permanent --add-port=443/tcp
-  - firewall-cmd --permanent --add-port=30000-32767/tcp
-  - firewall-cmd --reload
+  # Enable and start the Cilium installation service
+  - systemctl enable cilium-install.service
+  - systemctl start cilium-install.service
 
 final_message: "K3s master node setup completed. Check /var/log/cloud-init-output.log for details."
