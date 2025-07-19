@@ -85,13 +85,13 @@ envoy:
       envoy: [NET_ADMIN, PERFMON, BPF]
 
 hubble:
-  enabled: true
+  enabled: false
   relay:
-    enabled: true
-    rollOutPods: true
+    enabled: false
+    rollOutPods: false
   ui:
-    enabled: true
-    rollOutPods: true
+    enabled: false
+    rollOutPods: false
 
 ingressController:
   enabled: ${ingress_controller_enabled}

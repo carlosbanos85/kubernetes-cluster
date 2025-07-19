@@ -30,7 +30,7 @@ write_files:
       overlay
       ip_tables
       ip6_tables
-      netfilter_conntrack
+      nf_conntrack
     permissions: "0644"
 
   - path: /etc/systemd/system/k3s-join.service
@@ -56,6 +56,7 @@ write_files:
 
       MASTER_IP="${master_ip}"
       MASTER_PUBLIC_IP="${master_public_ip}"
+      K3S_TOKEN="${cluster_token}"
       MAX_RETRIES=30
       RETRY_COUNT=0
 
@@ -83,7 +84,7 @@ write_files:
           fi
 
           # Install k3s agent and join cluster
-          curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN="${cluster_token}" sh -s - \
+          curl -sfL https://get.k3s.io | K3S_URL=https://$MASTER_IP:6443 K3S_TOKEN="$K3S_TOKEN" sh -s - \
             --node-name ${hostname}
 
           # Wait for node to be ready
@@ -110,10 +111,13 @@ runcmd:
   - modprobe overlay
   - modprobe ip_tables
   - modprobe ip6_tables
-  - modprobe netfilter_conntrack
+  - modprobe nf_conntrack
 
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
+
+  # Add master hostname resolution
+  - echo "${master_ip} ${master_hostname}" >> /etc/hosts
 
   # Set up firewall rules for k3s
   - firewall-cmd --permanent --add-port=10250/tcp # Kubelet

@@ -36,6 +36,7 @@ resource "oci_core_instance" "kube_server_master" {
 
       # Load service configurations
       k3s_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
+      helm_service_config   = file("${path.root}/compute-instances/cloud-init-config/configs/helm-install.service")
       cilium_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
 
       # Load and template scripts

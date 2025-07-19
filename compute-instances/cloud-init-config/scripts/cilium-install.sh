@@ -20,16 +20,14 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 # Wait for k3s to be fully ready
-echo "Waiting for k3s to be fully ready..."
-sleep 30
+echo "Installing Cilium..."
 
 # Helm install cilium
-helm upgrade --install cilium cilium/cilium \
-    --namespace kube-system \
+helm upgrade cilium cilium/cilium \
+    -n kube-system \
+    -f /tmp/cilium/values.yaml \
     --version ${cilium_version} \
-    --values /tmp/cilium/values.yaml \
-    --set operator.replicas=1 \
-    --wait
+    --set operator.replicas=1
 
 # Wait for Cilium to be ready
 echo "Waiting for Cilium to be ready..."

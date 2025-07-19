@@ -1,0 +1,12 @@
+[Unit]
+Description=Install Helm
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/helm-install.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
