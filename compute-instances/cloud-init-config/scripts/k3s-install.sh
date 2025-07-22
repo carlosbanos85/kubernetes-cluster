@@ -17,8 +17,7 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
   --node-name ${hostname} \
   --cluster-init \
   --cluster-domain="${cluster_domain}" \
-  --write-kubeconfig-mode 644 \
-  K3S_TOKEN=${cluster_token}
+  --write-kubeconfig-mode 644
 
 # Wait for k3s to be ready
 until kubectl get nodes &> /dev/null; do

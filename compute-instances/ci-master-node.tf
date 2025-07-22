@@ -43,7 +43,6 @@ resource "oci_core_instance" "kube_server_master" {
       k3s_install_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/k3s-install.sh", {
         hostname       = var.master_hostname
         cluster_domain = var.cluster_domain
-        cluster_token  = var.cluster_token
       })
 
       helm_install_script = file("${path.root}/compute-instances/cloud-init-config/scripts/helm-install.sh")

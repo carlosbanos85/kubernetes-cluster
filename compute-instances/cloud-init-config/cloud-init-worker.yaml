@@ -56,7 +56,7 @@ write_files:
 
       MASTER_IP="${master_ip}"
       MASTER_PUBLIC_IP="${master_public_ip}"
-      K3S_TOKEN="${cluster_token}"
+      K3S_TOKEN=""
       MAX_RETRIES=30
       RETRY_COUNT=0
 
@@ -128,6 +128,5 @@ runcmd:
 
   # Enable and start the k3s join service
   - systemctl enable k3s-join.service
-  - systemctl start k3s-join.service
 
 final_message: "K3s worker node setup completed. Check /var/log/cloud-init-output.log for details."

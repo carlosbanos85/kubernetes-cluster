@@ -33,7 +33,6 @@ resource "oci_core_instance" "kube_server_workers" {
       master_ip        = oci_core_instance.kube_server_master.private_ip
       master_public_ip = oci_core_instance.kube_server_master.public_ip
       master_hostname  = var.master_hostname
-      cluster_token    = var.cluster_token
       vcn_cidr         = var.vcn_cidr
     }))
   }

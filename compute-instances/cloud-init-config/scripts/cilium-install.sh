@@ -20,10 +20,10 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 # Wait for k3s to be fully ready
-echo "Installing Cilium..."
+echo "Installing Cilium..."systemctl status k3s
 
 # Helm install cilium
-helm upgrade cilium cilium/cilium \
+helm install cilium cilium/cilium \
     -n kube-system \
     -f /tmp/cilium/values.yaml \
     --version ${cilium_version} \
@@ -31,7 +31,7 @@ helm upgrade cilium cilium/cilium \
 
 # Wait for Cilium to be ready
 echo "Waiting for Cilium to be ready..."
-kubectl wait --for=condition=ready --all pods -n kube-system -l k8s-app=cilium --timeout=300s
+kubectl wait --for=condition=ready --all pods -n kube-system -l k8s-app=cilium --timeout=500s
 
 # Verify Cilium installation
 cilium status --wait

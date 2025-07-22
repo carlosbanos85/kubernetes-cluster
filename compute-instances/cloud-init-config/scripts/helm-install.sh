@@ -1,8 +1,6 @@
 #!/bin/bash
 set -e
 
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
-
 # Install Helm using the cross-platform script (works on Oracle Linux)
 echo "Installing Helm"
 curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash

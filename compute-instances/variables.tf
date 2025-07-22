@@ -72,12 +72,6 @@ variable "vcn_cidr" {
   type        = string
 }
 
-variable "cluster_token" {
-  description = "Cluster token"
-  type        = string
-  sensitive   = true
-}
-
 variable "cluster_domain" {
   description = "Cluster domain suffix"
   type        = string

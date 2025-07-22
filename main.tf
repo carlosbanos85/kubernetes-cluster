@@ -52,7 +52,6 @@ module "compute_instances" {
   cilium_version            = var.cilium_version
   vcn_cidr                  = var.vcn_cidr
   common_tags               = local.common_tags
-  cluster_token             = var.cluster_token
   enable_ingress_controller = var.enable_ingress_controller
   cilium_lb_ip_pool         = var.cilium_lb_ip_pool
 

@@ -124,13 +124,6 @@ variable "ssh_public_key" {
   }
 }
 
-# Cluster k3s token
-variable "cluster_token" {
-  description = "Cluster token"
-  type        = string
-  sensitive   = true
-}
-
 # Cilium
 variable "cilium_version" {
   description = "Cilium version for Helm install"

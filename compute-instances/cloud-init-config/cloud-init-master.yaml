@@ -87,6 +87,10 @@ runcmd:
   - systemctl enable k3s-install.service
   - systemctl start k3s-install.service
 
+  - mkdir -p /home/opc/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /home/opc/.kube/config
+  - chown opc:opc /home/opc/.kube/config
+
   # Enable and start the Helm installation service
   - systemctl enable helm-install.service
   - systemctl start helm-install.service
@@ -94,8 +98,5 @@ runcmd:
   # Enable and start the Cilium installation service
   - systemctl enable cilium-install.service
   - systemctl start cilium-install.service
-
-  - cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-  - chown opc:opc /home/opc/.kube/config
 
 final_message: "K3s master node setup completed. Check /var/log/cloud-init-output.log for details."
