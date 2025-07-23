@@ -77,9 +77,6 @@ runcmd:
   - modprobe xt_socket
   - modprobe ip6table_mangle
 
-  # Create cilium group
-  - groupadd cilium
-
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
 
@@ -105,6 +102,9 @@ runcmd:
   - ufw allow 8080/tcp # HTTP
   - ufw allow 443/tcp # HTTPS
   - ufw allow 30000:32767/tcp # NodePort range
+
+  # Internal cluster communication (from VCN CIDR)
+  - ufw allow from 10.0.0.0/8 to any
 
   - ufw reload
 
