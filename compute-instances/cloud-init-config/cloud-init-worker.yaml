@@ -11,6 +11,7 @@ packages:
   - vim
   - git
   - unzip
+  - ufw
 
 # Configure system settings for k3s
 write_files:
@@ -31,6 +32,12 @@ write_files:
       ip_tables
       ip6_tables
       nf_conntrack
+      vxlan
+      xt_REDIRECT
+      xt_owner
+      iptable_nat
+      iptable_mangle
+      iptable_raw
     permissions: "0644"
 
   - path: /etc/systemd/system/k3s-join.service
@@ -78,7 +85,7 @@ write_files:
 
           # Check if Cilium is ready on the master
           CILIUM_READY=false
-          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes opc@$MASTER_PUBLIC_IP "kubectl get pods -n kube-system -l k8s-app=cilium --no-headers | grep -q Running" &> /dev/null; then
+          if ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 -o BatchMode=yes ubuntu@$MASTER_PUBLIC_IP "kubectl get pods -n kube-system -l k8s-app=cilium --no-headers | grep -q Running" &> /dev/null; then
             echo "Cilium is running on master"
             CILIUM_READY=true
           fi
@@ -106,12 +113,18 @@ write_files:
     permissions: "0755"
 
 runcmd:
-  # Load kernel modules
+  # Load all required kernel modules
   - modprobe br_netfilter
   - modprobe overlay
   - modprobe ip_tables
   - modprobe ip6_tables
   - modprobe nf_conntrack
+  - modprobe vxlan
+  - modprobe xt_REDIRECT
+  - modprobe xt_owner
+  - modprobe iptable_nat
+  - modprobe iptable_mangle
+  - modprobe iptable_raw
 
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
@@ -119,12 +132,28 @@ runcmd:
   # Add master hostname resolution
   - echo "${master_ip} ${master_hostname}" >> /etc/hosts
 
-  # Set up firewall rules for k3s
-  - firewall-cmd --permanent --add-port=10250/tcp # Kubelet
-  - firewall-cmd --permanent --add-port=4240/tcp # Cilium health
-  - firewall-cmd --permanent --add-port=4244/tcp # Hubble gRPC
-  - firewall-cmd --permanent --add-port=8472/udp # VXLAN
-  - firewall-cmd --reload
+  # Complete firewall configuration for K3s + Cilium worker
+  - ufw --force enable
+
+  # Core ports
+  - ufw allow 22/tcp # SSH
+  - ufw allow 10250/tcp # Kubelet API
+
+  # Cilium ports
+  - ufw allow 4240/tcp # Cilium health checks
+  - ufw allow 4244/tcp # Hubble gRPC API
+  - ufw allow 8472/udp # VXLAN tunnel endpoint
+  - ufw allow 9962:9964/tcp # Cilium agent health & metrics
+
+  # Application ports
+  - ufw allow 80/tcp # HTTP
+  - ufw allow 443/tcp # HTTPS
+  - ufw allow 30000:32767/tcp # NodePort range
+
+  # Internal cluster communication (from VCN CIDR)
+  - ufw allow from 10.0.0.0/16 to any
+
+  - ufw reload
 
   # Enable and start the k3s join service
   - systemctl enable k3s-join.service

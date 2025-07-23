@@ -3,16 +3,15 @@ data "oci_identity_availability_domains" "ads" {
   compartment_id = var.compartment_id
 }
 
-# Get the latest Oracle Linux 9 image for ARM64
-data "oci_core_images" "ol9_images" {
+# Get the latest Ubuntu 22.04 LTS image for ARM64
+data "oci_core_images" "ubuntu_images" {
   compartment_id           = var.compartment_id
-  operating_system         = "Oracle Linux"
-  operating_system_version = "9"
+  operating_system         = "Canonical Ubuntu"
+  operating_system_version = "22.04"
   shape                    = var.instance_shape
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
 }
-
 
 # Network Module
 module "network" {

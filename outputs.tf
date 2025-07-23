@@ -57,10 +57,10 @@ output "kube_server_workers_private_ips" {
 output "ssh_connection_commands" {
   description = "SSH connection commands for all nodes"
   value = {
-    master = "ssh opc@${module.compute_instances.kube_server_master_public_ip}"
+    master = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip}"
     workers = [
       for ip in module.compute_instances.kube_server_workers_public_ips :
-      "ssh opc@${ip}"
+      "ssh ubuntu@${ip}"
     ]
   }
 }
@@ -72,7 +72,7 @@ output "kube_server_api_endpoint" {
 
 output "kubeconfig_command" {
   description = "Command to download and configure kubeconfig for kubectl access"
-  value       = "scp opc@${module.compute_instances.kube_server_master_public_ip}:/etc/rancher/k3s/k3s.yaml ~/.kube/config && sed -i 's/127.0.0.1/${module.compute_instances.kube_server_master_public_ip}/g' ~/.kube/config"
+  value       = "scp ubuntu@${module.compute_instances.kube_server_master_public_ip}:/etc/rancher/k3s/k3s.yaml ~/.kube/config && sed -i 's/127.0.0.1/${module.compute_instances.kube_server_master_public_ip}/g' ~/.kube/config"
 }
 
 # Resource Summary
@@ -116,10 +116,10 @@ output "cluster_status_commands" {
   description = "Useful commands for checking cluster status and health"
   value = {
     # Cloud-init status
-    cloud_init_master = "ssh opc@${module.compute_instances.kube_server_master_public_ip} 'sudo cloud-init status --long'"
+    cloud_init_master = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo cloud-init status --long'"
     cloud_init_workers = [
       for ip in module.compute_instances.kube_server_workers_public_ips :
-      "ssh opc@${ip} 'sudo cloud-init status --long'"
+      "ssh ubuntu@${ip} 'sudo cloud-init status --long'"
     ]
 
     # Cluster status
@@ -128,17 +128,17 @@ output "cluster_status_commands" {
     cluster_info  = "kubectl cluster-info"
 
     # Service status
-    master_kube_server_status = "ssh opc@${module.compute_instances.kube_server_master_public_ip} 'sudo systemctl status k3s'"
+    master_kube_server_status = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo systemctl status k3s'"
     worker_kube_server_status = [
       for ip in module.compute_instances.kube_server_workers_public_ips :
-      "ssh opc@${ip} 'sudo systemctl status k3s-agent'"
+      "ssh ubuntu@${ip} 'sudo systemctl status k3s-agent'"
     ]
 
     # Logs
-    master_logs = "ssh opc@${module.compute_instances.kube_server_master_public_ip} 'sudo journalctl -u k3s -f'"
+    master_logs = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo journalctl -u k3s -f'"
     worker_logs = [
       for ip in module.compute_instances.kube_server_workers_public_ips :
-      "ssh opc@${ip} 'sudo journalctl -u k3s-agent -f'"
+      "ssh ubuntu@${ip} 'sudo journalctl -u k3s-agent -f'"
     ]
   }
 }
@@ -158,7 +158,7 @@ output "deployment_info" {
     quick_commands = {
       check_nodes    = "kubectl get nodes"
       check_pods     = "kubectl get pods -A"
-      ssh_master     = "ssh opc@${module.compute_instances.kube_server_master_public_ip}"
+      ssh_master     = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip}"
       health_check   = "./scripts/cluster-health.sh all"
       backup_cluster = "./scripts/backup-restore.sh full"
     }

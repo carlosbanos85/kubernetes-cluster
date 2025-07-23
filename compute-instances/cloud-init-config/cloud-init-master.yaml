@@ -11,6 +11,8 @@ packages:
   - vim
   - git
   - unzip
+  - ufw
+  - linux-modules-extra-$(uname -r)
 
 # Configure system settings for k3s
 write_files:
@@ -60,42 +62,65 @@ write_files:
     permissions: "0755"
 
 runcmd:
-  # Load kernel modules
+  # Load all required kernel modules
   - modprobe br_netfilter
   - modprobe overlay
   - modprobe ip_tables
   - modprobe ip6_tables
   - modprobe nf_conntrack
+  - modprobe vxlan
+  - modprobe xt_REDIRECT
+  - modprobe xt_owner
+  - modprobe iptable_nat
+  - modprobe iptable_mangle
+  - modprobe iptable_raw
+  - modprobe xt_socket
+  - modprobe ip6table_mangle
+
+  # Create cilium group
+  - groupadd cilium
 
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
 
-  # Set up firewall rules for k3s
-  - firewall-cmd --permanent --add-port=6443/tcp # K8s API
-  - firewall-cmd --permanent --add-port=10250/tcp # Kubelet
-  - firewall-cmd --permanent --add-port=4240/tcp # Cilium health
-  - firewall-cmd --permanent --add-port=4244/tcp # Hubble gRPC
-  - firewall-cmd --permanent --add-port=4245/tcp # Hubble Relay
-  - firewall-cmd --permanent --add-port=8472/udp # VXLAN
-  - firewall-cmd --permanent --add-port=2379-2380/tcp # ETCD
-  - firewall-cmd --permanent --add-port=80/tcp # HTTP
-  - firewall-cmd --permanent --add-port=443/tcp # HTTPS
-  - firewall-cmd --permanent --add-port=30080/tcp # Hubble UI
-  - firewall-cmd --reload
+  # Complete firewall configuration for K3s + Cilium
+  - ufw --force enable
 
-  # Enable and start the k3s installation service
+  # Core K3s ports
+  - ufw allow 22/tcp # SSH
+  - ufw allow 6443/tcp # Kubernetes API server
+  - ufw allow 10250/tcp # Kubelet API
+  - ufw allow 2379:2380/tcp # etcd (HA clusters)
+
+  # Cilium ports
+  - ufw allow 4240/tcp # Cilium health checks
+  - ufw allow 4244/tcp # Hubble gRPC API
+  - ufw allow 4245/tcp # Hubble Relay
+  - ufw allow 8472/udp # VXLAN tunnel endpoint
+  - ufw allow 9962:9964/tcp # Cilium agent health & metrics
+  - ufw allow 9965/tcp # Cilium operator metrics
+
+  # Application ports
+  - ufw allow 80/tcp # HTTP
+  - ufw allow 443/tcp # HTTPS
+  - ufw allow 30000:32767/tcp # NodePort range
+
+  # Internal cluster communication (from VCN CIDR)
+  - ufw allow from 10.0.0.0/16 to any
+
+  - ufw reload
+
+  # Enable and start services
   - systemctl enable k3s-install.service
   - systemctl start k3s-install.service
 
-  - mkdir -p /home/opc/.kube
-  - cp /etc/rancher/k3s/k3s.yaml /home/opc/.kube/config
-  - chown opc:opc /home/opc/.kube/config
+  - mkdir -p /home/ubuntu/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+  - chown ubuntu:ubuntu /home/ubuntu/.kube/config
 
-  # Enable and start the Helm installation service
   - systemctl enable helm-install.service
   - systemctl start helm-install.service
 
-  # Enable and start the Cilium installation service
   - systemctl enable cilium-install.service
   - systemctl start cilium-install.service
 
