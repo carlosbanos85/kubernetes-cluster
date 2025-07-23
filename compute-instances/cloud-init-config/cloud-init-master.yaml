@@ -102,11 +102,9 @@ runcmd:
 
   # Application ports
   - ufw allow 80/tcp # HTTP
+  - ufw allow 8080/tcp # HTTP
   - ufw allow 443/tcp # HTTPS
   - ufw allow 30000:32767/tcp # NodePort range
-
-  # Internal cluster communication (from VCN CIDR)
-  - ufw allow from 10.0.0.0/16 to any
 
   - ufw reload
 
