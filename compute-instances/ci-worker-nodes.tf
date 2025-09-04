@@ -11,7 +11,7 @@ resource "oci_core_instance" "kube_server_workers" {
   }
 
   create_vnic_details {
-    subnet_id                 = var.subnet_id
+    subnet_id                 = var.worker_subnet_id
     display_name              = "${var.project_name}-worker-${count.index + 1}-vnic"
     assign_public_ip          = true
     assign_private_dns_record = true

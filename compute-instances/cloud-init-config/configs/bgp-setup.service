@@ -1,0 +1,12 @@
+[Unit]
+Description=Setup BGP for Cilium
+After=cilium-install.service
+Requires=cilium-install.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/bgp-setup.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

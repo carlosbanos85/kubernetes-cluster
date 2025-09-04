@@ -4,14 +4,13 @@ output "network" {
   value = {
     vcn_id                    = module.network.vcn_id
     vcn_cidr                  = module.network.vcn_cidr
-    subnet_id                 = module.network.subnet_id
-    subnet_cidr               = module.network.subnet_cidr
+    api_subnet_id             = module.network.api_subnet_id
+    worker_subnet_id          = module.network.worker_subnet_id
+    api_subnet_cidr           = module.network.api_subnet_cidr
+    worker_subnet_cidr        = module.network.worker_subnet_cidr
     internet_gateway_id       = module.network.internet_gateway_id
-    security_list_id          = module.network.security_list_id
     network_security_group_id = module.network.network_security_group_id
-    route_table_id            = module.network.route_table_id
     vcn_dns_label             = module.network.vcn_dns_label
-    subnet_dns_label          = module.network.subnet_dns_label
   }
 }
 
@@ -98,8 +97,9 @@ output "cluster_summary" {
     total_storage_gb     = (1 + var.worker_count) * var.boot_volume_size_gb
 
     # Network configuration
-    vcn_cidr    = var.vcn_cidr
-    subnet_cidr = var.subnet_cidr
+    vcn_cidr           = var.vcn_cidr
+    api_subnet_cidr    = var.api_subnet_cidr
+    worker_subnet_cidr = var.worker_subnet_cidr
 
     # K3s configuration
     cluster_domain = var.cluster_domain
@@ -195,7 +195,8 @@ output "admin_info" {
     # Resource identifiers
     compartment_ocid = var.compartment_id
     vcn_id           = module.network.vcn_id
-    subnet_id        = module.network.subnet_id
+    api_subnet_id    = module.network.api_subnet_id
+    worker_subnet_id = module.network.worker_subnet_id
 
     # Configuration
     project_name   = var.project_name

@@ -57,8 +57,19 @@ variable "ssh_public_key" {
 }
 
 # Network Configuration
-variable "subnet_id" {
-  description = "OCID of the subnet where instances will be created"
+variable "api_subnet_id" {
+  description = "OCID of the API subnet where master instances will be created"
+  type        = string
+}
+
+variable "worker_subnet_id" {
+  description = "OCID of the worker subnet where worker instances will be created"
+  type        = string
+}
+
+# Add BGP configuration
+variable "bgp_announced_cidr" {
+  description = "CIDR block for BGP announced IPs"
   type        = string
 }
 

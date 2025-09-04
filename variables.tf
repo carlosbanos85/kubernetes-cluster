@@ -40,15 +40,6 @@ variable "vcn_cidr" {
   }
 }
 
-variable "subnet_cidr" {
-  description = "CIDR block for the public subnet"
-  type        = string
-  validation {
-    condition     = can(cidrhost(var.subnet_cidr, 0))
-    error_message = "Subnet CIDR must be a valid IPv4 CIDR block."
-  }
-}
-
 # Compute Configuration
 variable "instance_shape" {
   description = "Shape of the compute instances"
@@ -136,12 +127,30 @@ variable "enable_ingress_controller" {
   default     = false
 }
 
-variable "cilium_lb_ip_pool" {
-  description = "IP pool for Cilium load balancer (CIDR or IP range)"
+variable "api_subnet_cidr" {
+  description = "CIDR block for the API subnet (master nodes)"
   type        = string
-  default     = ""
   validation {
-    condition     = var.cilium_lb_ip_pool == "" || can(cidrhost(var.cilium_lb_ip_pool, 0)) || can(regex("^[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}\\.[0-9]{1,3}$", var.cilium_lb_ip_pool))
-    error_message = "Cilium LB IP pool must be a valid CIDR block or IP address."
+    condition     = can(cidrhost(var.api_subnet_cidr, 0))
+    error_message = "API subnet CIDR must be a valid IPv4 CIDR block."
+  }
+}
+
+variable "worker_subnet_cidr" {
+  description = "CIDR block for the worker subnet"
+  type        = string
+  validation {
+    condition     = can(cidrhost(var.worker_subnet_cidr, 0))
+    error_message = "Worker subnet CIDR must be a valid IPv4 CIDR block."
+  }
+}
+
+variable "bgp_announced_cidr" {
+  description = "CIDR block for BGP announced load balancer IPs"
+  type        = string
+  default     = "10.0.100.0/24"
+  validation {
+    condition     = can(cidrhost(var.bgp_announced_cidr, 0))
+    error_message = "BGP announced CIDR must be a valid IPv4 CIDR block."
   }
 }

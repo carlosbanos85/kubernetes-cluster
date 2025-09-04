@@ -10,7 +10,7 @@ resource "oci_core_instance" "kube_server_master" {
   }
 
   create_vnic_details {
-    subnet_id                 = var.subnet_id
+    subnet_id                 = var.api_subnet_id
     display_name              = "${local.master_hostname}-vnic"
     assign_public_ip          = true
     assign_private_dns_record = true
@@ -35,9 +35,10 @@ resource "oci_core_instance" "kube_server_master" {
       modules_config = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-cilium-modules.conf")
 
       # Load service configurations
-      k3s_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
-      helm_service_config   = file("${path.root}/compute-instances/cloud-init-config/configs/helm-install.service")
-      cilium_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
+      k3s_service_config       = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
+      helm_service_config      = file("${path.root}/compute-instances/cloud-init-config/configs/helm-install.service")
+      cilium_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
+      bgp_setup_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/bgp-setup.service")
 
       # Load and template scripts
       k3s_install_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/k3s-install.sh", {
@@ -58,6 +59,16 @@ resource "oci_core_instance" "kube_server_master" {
         master_ip                  = var.master_hostname # Use hostname for internal communication
         ingress_controller_enabled = var.enable_ingress_controller
         lb_ip_pool                 = var.cilium_lb_ip_pool != "" ? var.cilium_lb_ip_pool : "192.168.101.25"
+      })
+
+      bgp_setup_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/bgp-setup.sh", {
+        hostname           = var.master_hostname
+        vcn_cidr           = var.vcn_cidr
+        bgp_announced_cidr = var.bgp_announced_cidr
+        local_asn          = local.bgp_config.local_asn
+        drg_asn            = local.bgp_config.drg_asn
+        drg_peer_ip        = local.bgp_config.drg_peer_ip
+        cluster_name       = var.project_name
       })
     }))
   }

@@ -31,6 +31,11 @@ write_files:
       ${indent(6, cilium_values_config)}
     permissions: "0644"
 
+  - path: /opt/bgp-setup.sh
+    content: |
+      ${indent(6, bgp_setup_script)}
+    permissions: "0755"
+
   - path: /etc/systemd/system/k3s-install.service
     content: |
       ${indent(6, k3s_service_config)}
@@ -44,6 +49,11 @@ write_files:
   - path: /etc/systemd/system/cilium-install.service
     content: |
       ${indent(6, cilium_service_config)}
+    permissions: "0644"
+
+  - path: /etc/systemd/system/bgp-setup.service
+    content: |
+      ${indent(6, bgp_setup_service_config)}
     permissions: "0644"
 
   - path: /opt/k3s-install.sh
@@ -89,13 +99,15 @@ runcmd:
   - ufw allow 10250/tcp # Kubelet API
   - ufw allow 2379:2380/tcp # etcd (HA clusters)
 
+  # BGP ports
+  - ufw allow 179/tcp # BGP
+
   # Cilium ports
   - ufw allow 4240/tcp # Cilium health checks
   - ufw allow 4244/tcp # Hubble gRPC API
   - ufw allow 4245/tcp # Hubble Relay
   - ufw allow 8472/udp # VXLAN tunnel endpoint
-  - ufw allow 9962:9964/tcp # Cilium agent health & metrics
-  - ufw allow 9965/tcp # Cilium operator metrics
+  - ufw allow 9962:9965/tcp # Cilium agent health & metrics
 
   # Application ports
   - ufw allow 80/tcp # HTTP
@@ -108,6 +120,9 @@ runcmd:
 
   - ufw reload
 
+  # Enable and start services in order
+  - systemctl daemon-reload
+
   # Enable and start services
   - systemctl enable k3s-install.service
   - systemctl start k3s-install.service
@@ -115,11 +130,18 @@ runcmd:
   - mkdir -p /home/ubuntu/.kube
   - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
   - chown ubuntu:ubuntu /home/ubuntu/.kube/config
+  - chmod 600 /home/ubuntu/.kube/config
 
+  # 2. Install Helm
   - systemctl enable helm-install.service
   - systemctl start helm-install.service
 
+  # 3. Install Cilium with BGP configuration
   - systemctl enable cilium-install.service
   - systemctl start cilium-install.service
+
+  # 4. Setup BGP peering (after Cilium is ready)
+  - systemctl enable bgp-setup.service
+  - systemctl start bgp-setup.service
 
 final_message: "K3s master node setup completed. Check /var/log/cloud-init-output.log for details."

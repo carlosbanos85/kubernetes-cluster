@@ -17,13 +17,14 @@ data "oci_core_images" "ubuntu_images" {
 module "network" {
   source = "./network"
 
-  # Pass variables to network module
-  compartment_id = var.compartment_id
-  project_name   = var.project_name
-  environment    = var.environment
-  vcn_cidr       = var.vcn_cidr
-  subnet_cidr    = var.subnet_cidr
-  common_tags    = local.common_tags
+  compartment_id     = var.compartment_id
+  project_name       = var.project_name
+  environment        = var.environment
+  vcn_cidr           = var.vcn_cidr
+  api_subnet_cidr    = var.api_subnet_cidr
+  worker_subnet_cidr = var.worker_subnet_cidr
+  bgp_announced_cidr = var.bgp_announced_cidr
+  common_tags        = local.common_tags
 }
 
 # Compute Instances Module
@@ -52,9 +53,10 @@ module "compute_instances" {
   vcn_cidr                  = var.vcn_cidr
   common_tags               = local.common_tags
   enable_ingress_controller = var.enable_ingress_controller
-  cilium_lb_ip_pool         = var.cilium_lb_ip_pool
 
   # Network resources from network module
-  subnet_id                 = module.network.subnet_id
+  api_subnet_id             = module.network.api_subnet_id
+  worker_subnet_id          = module.network.worker_subnet_id
+  bgp_announced_cidr        = var.bgp_announced_cidr
   network_security_group_id = module.network.network_security_group_id
 }
