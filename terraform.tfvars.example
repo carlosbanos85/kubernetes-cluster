@@ -1,0 +1,32 @@
+# OCI
+compartment_id = "..."
+region         = "..."
+
+# Project Config
+project_name = "cluster"
+environment  = "staging"
+
+# SSH
+ssh_public_key = ".."
+
+cluster_domain  = "k3s-cluster"
+master_hostname = "k3s-master"
+worker_hostname = "k3s-worker"
+
+# Network Config - Multi-subnet architecture
+vcn_cidr           = "10.0.0.0/16"
+api_subnet_cidr    = "10.0.1.0/29"   # 8 IPs for master nodes
+worker_subnet_cidr = "10.0.2.0/24"   # 256 IPs for worker nodes
+bgp_announced_cidr = "10.0.100.0/24" # BGP announced range
+
+# Instance Config
+instance_shape      = "VM.Standard.A1.Flex"
+instance_ocpus      = 1
+instance_memory_gb  = 6
+boot_volume_size_gb = 50
+worker_count        = 1
+
+# Cilium configuration
+
+cilium_version            = "1.18.1"
+enable_ingress_controller = false
