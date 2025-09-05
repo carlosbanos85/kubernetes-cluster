@@ -25,16 +25,6 @@ locals {
       max_port    = 6443
     },
 
-    # BGP peering
-    {
-      description = "BGP peering"
-      source      = var.vcn_cidr
-      source_type = "CIDR_BLOCK"
-      protocol    = "6"
-      min_port    = 179
-      max_port    = 179
-    },
-
     # Kubelet API
     {
       description = "Kubelet API"

@@ -1,8 +1,8 @@
-# API Subnet Security List
-resource "oci_core_security_list" "kube_server_api_security_list" {
+# Master Security List
+resource "oci_core_security_list" "master_security_list" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.kube_server_vcn.id
-  display_name   = "${var.project_name}-api-security-list"
+  display_name   = "${var.project_name}-master-security-list"
 
   egress_security_rules {
     destination      = "0.0.0.0/0"
@@ -35,15 +35,15 @@ resource "oci_core_security_list" "kube_server_api_security_list" {
     }
   }
 
-  # BGP peering with DRG
+  # Gateway API NodePorts from LB subnet
   ingress_security_rules {
-    source      = var.vcn_cidr
+    source      = var.lb_subnet_cidr
     source_type = "CIDR_BLOCK"
     protocol    = "6"
-    description = "BGP peering"
+    description = "Gateway NodePorts from LB"
     tcp_options {
-      min = 179
-      max = 179
+      min = 30080
+      max = 30443
     }
   }
 
@@ -58,12 +58,12 @@ resource "oci_core_security_list" "kube_server_api_security_list" {
   freeform_tags = merge(var.common_tags, {
     Component = "network"
     Type      = "security-list"
-    Scope     = "api"
+    Scope     = "master"
   })
 }
 
-# Worker Subnet Security List
-resource "oci_core_security_list" "kube_server_worker_security_list" {
+# Worker Security List
+resource "oci_core_security_list" "worker_security_list" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.kube_server_vcn.id
   display_name   = "${var.project_name}-worker-security-list"
@@ -87,62 +87,15 @@ resource "oci_core_security_list" "kube_server_worker_security_list" {
     }
   }
 
-  # Kubelet API
+  # Gateway API NodePorts from LB subnet
   ingress_security_rules {
-    source      = var.vcn_cidr
+    source      = var.lb_subnet_cidr
     source_type = "CIDR_BLOCK"
     protocol    = "6"
-    description = "Kubelet API"
+    description = "Gateway NodePorts from LB"
     tcp_options {
-      min = 10250
-      max = 10250
-    }
-  }
-
-  # BGP peering
-  ingress_security_rules {
-    source      = var.vcn_cidr
-    source_type = "CIDR_BLOCK"
-    protocol    = "6"
-    description = "BGP peering"
-    tcp_options {
-      min = 179
-      max = 179
-    }
-  }
-
-  # Cilium VXLAN
-  ingress_security_rules {
-    source      = var.vcn_cidr
-    source_type = "CIDR_BLOCK"
-    protocol    = "17"
-    description = "Cilium VXLAN tunnel"
-    udp_options {
-      min = 8472
-      max = 8472
-    }
-  }
-
-  # Application traffic (from DRG via BGP)
-  ingress_security_rules {
-    source      = "0.0.0.0/0"
-    source_type = "CIDR_BLOCK"
-    protocol    = "6"
-    description = "HTTP traffic"
-    tcp_options {
-      min = 80
-      max = 80
-    }
-  }
-
-  ingress_security_rules {
-    source      = "0.0.0.0/0"
-    source_type = "CIDR_BLOCK"
-    protocol    = "6"
-    description = "HTTPS traffic"
-    tcp_options {
-      min = 443
-      max = 443
+      min = 30080
+      max = 30443
     }
   }
 
@@ -161,8 +114,8 @@ resource "oci_core_security_list" "kube_server_worker_security_list" {
   })
 }
 
-# Load Balancer Subnet Security List
-resource "oci_core_security_list" "kube_server_lb_security_list" {
+# Load Balancer Security List
+resource "oci_core_security_list" "lb_security_list" {
   compartment_id = var.compartment_id
   vcn_id         = oci_core_vcn.kube_server_vcn.id
   display_name   = "${var.project_name}-lb-security-list"
@@ -174,7 +127,7 @@ resource "oci_core_security_list" "kube_server_lb_security_list" {
     description      = "Allow all outbound traffic"
   }
 
-  # HTTP/HTTPS for load balancer IPs
+  # HTTP traffic
   ingress_security_rules {
     source      = "0.0.0.0/0"
     source_type = "CIDR_BLOCK"
@@ -186,6 +139,7 @@ resource "oci_core_security_list" "kube_server_lb_security_list" {
     }
   }
 
+  # HTTPS traffic
   ingress_security_rules {
     source      = "0.0.0.0/0"
     source_type = "CIDR_BLOCK"
@@ -200,6 +154,6 @@ resource "oci_core_security_list" "kube_server_lb_security_list" {
   freeform_tags = merge(var.common_tags, {
     Component = "network"
     Type      = "security-list"
-    Scope     = "loadbalancer"
+    Scope     = "load-balancer"
   })
 }

@@ -127,30 +127,20 @@ variable "enable_ingress_controller" {
   default     = false
 }
 
-variable "api_subnet_cidr" {
-  description = "CIDR block for the API subnet (master nodes)"
+variable "master_subnet_cidr" {
+  description = "CIDR block for the master subnet"
   type        = string
-  validation {
-    condition     = can(cidrhost(var.api_subnet_cidr, 0))
-    error_message = "API subnet CIDR must be a valid IPv4 CIDR block."
-  }
+  default     = "10.0.1.0/29"
 }
 
 variable "worker_subnet_cidr" {
   description = "CIDR block for the worker subnet"
   type        = string
-  validation {
-    condition     = can(cidrhost(var.worker_subnet_cidr, 0))
-    error_message = "Worker subnet CIDR must be a valid IPv4 CIDR block."
-  }
+  default     = "10.0.2.0/24"
 }
 
-variable "bgp_announced_cidr" {
-  description = "CIDR block for BGP announced load balancer IPs"
+variable "lb_subnet_cidr" {
+  description = "CIDR block for the load balancer subnet"
   type        = string
-  default     = "10.0.100.0/24"
-  validation {
-    condition     = can(cidrhost(var.bgp_announced_cidr, 0))
-    error_message = "BGP announced CIDR must be a valid IPv4 CIDR block."
-  }
+  default     = "10.0.3.0/24"
 }

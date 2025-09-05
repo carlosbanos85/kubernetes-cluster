@@ -2,22 +2,37 @@ cluster:
   name: ${cluster_name}
   id: 1
 
+# Gateway API for advanced routing
+gatewayAPI:
+  enabled: true
+
+# Enable Envoy for L7 features
+envoy:
+  enabled: true
+  rollOutPods: true
+  securityContext:
+    capabilities:
+      keepCapNetBindService: true
+      envoy: [NET_ADMIN, PERFMON, BPF]
+
 kubeProxyReplacement: true
 
 k8sServiceHost: ${master_ip}
 k8sServicePort: 6443
 
+# Disable BGP
 bgpControlPlane:
-  enabled: true
-
+  enabled: false
 bgp:
-  enabled: true
-  announce:
-    loadbalancerIP: true
-    podCIDR: false
+  enabled: false
 
+# Disable L2 announcements
 l2announcements:
   enabled: false
+
+# Disable ingress controller for Gateway API
+ingressController:
+  enabled: ${ingress_controller_enabled}
 
 externalIPs:
   enabled: true
@@ -54,9 +69,35 @@ hubble:
     enabled: true
     rollOutPods: true
 
-# Gateway API for advanced routing
-gatewayAPI:
-  enabled: true
+# Security context for eBPF
+securityContext:
+  capabilities:
+    ciliumAgent:
+      [
+        CHOWN,
+        KILL,
+        NET_ADMIN,
+        NET_RAW,
+        IPC_LOCK,
+        SYS_ADMIN,
+        SYS_RESOURCE,
+        DAC_OVERRIDE,
+        FOWNER,
+        SETGID,
+        SETUID,
+      ]
+    cleanCiliumState: [NET_ADMIN, SYS_ADMIN, SYS_RESOURCE]
 
-envoy:
-  enabled: true
+cgroup:
+  autoMount:
+    enabled: false
+  hostRoot: /sys/fs/cgroup
+
+# Performance optimizations
+resources:
+  limits:
+    cpu: 1000m
+    memory: 1Gi
+  requests:
+    cpu: 200m
+    memory: 512Mi

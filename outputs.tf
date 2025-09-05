@@ -4,13 +4,33 @@ output "network" {
   value = {
     vcn_id                    = module.network.vcn_id
     vcn_cidr                  = module.network.vcn_cidr
-    api_subnet_id             = module.network.api_subnet_id
+    master_subnet_id          = module.network.master_subnet_id
     worker_subnet_id          = module.network.worker_subnet_id
-    api_subnet_cidr           = module.network.api_subnet_cidr
-    worker_subnet_cidr        = module.network.worker_subnet_cidr
+    lb_subnet_id              = module.network.lb_subnet_id
     internet_gateway_id       = module.network.internet_gateway_id
     network_security_group_id = module.network.network_security_group_id
     vcn_dns_label             = module.network.vcn_dns_label
+    nlb_public_ip             = module.network.nlb_public_ip
+    nlb_id                    = module.network.nlb_id
+  }
+}
+
+# Gateway API Access Information
+output "gateway_api_endpoints" {
+  description = "Gateway API access endpoints"
+  value = {
+    nlb_public_ip  = module.network.nlb_public_ip
+    http_endpoint  = "http://${module.network.nlb_public_ip}"
+    https_endpoint = "https://${module.network.nlb_public_ip}"
+  }
+}
+
+output "gateway_api_setup_commands" {
+  description = "Commands to set up Gateway API resources"
+  value = {
+    install_crds = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
+    check_status = "kubectl get gatewayclasses,gateways,httproutes -o wide"
+    test_gateway = "curl -H 'Host: api.example.com' http://${module.network.nlb_public_ip}"
   }
 }
 
@@ -98,7 +118,7 @@ output "cluster_summary" {
 
     # Network configuration
     vcn_cidr           = var.vcn_cidr
-    api_subnet_cidr    = var.api_subnet_cidr
+    master_subnet_cidr = var.master_subnet_cidr
     worker_subnet_cidr = var.worker_subnet_cidr
 
     # K3s configuration
@@ -195,7 +215,7 @@ output "admin_info" {
     # Resource identifiers
     compartment_ocid = var.compartment_id
     vcn_id           = module.network.vcn_id
-    api_subnet_id    = module.network.api_subnet_id
+    master_subnet_id = module.network.master_subnet_id
     worker_subnet_id = module.network.worker_subnet_id
 
     # Configuration
@@ -203,5 +223,15 @@ output "admin_info" {
     environment    = var.environment
     instance_shape = var.instance_shape
     worker_count   = var.worker_count
+  }
+}
+
+output "nlb_backends" {
+  description = "NLB backend configuration"
+  value = {
+    master_http_backend   = oci_network_load_balancer_backend.master_http_backend.id
+    master_https_backend  = oci_network_load_balancer_backend.master_https_backend.id
+    worker_http_backends  = oci_network_load_balancer_backend.worker_http_backends[*].id
+    worker_https_backends = oci_network_load_balancer_backend.worker_https_backends[*].id
   }
 }

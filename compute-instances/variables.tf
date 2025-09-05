@@ -57,19 +57,13 @@ variable "ssh_public_key" {
 }
 
 # Network Configuration
-variable "api_subnet_id" {
-  description = "OCID of the API subnet where master instances will be created"
+variable "master_subnet_id" {
+  description = "OCID of the master subnet where master instances will be created"
   type        = string
 }
 
 variable "worker_subnet_id" {
   description = "OCID of the worker subnet where worker instances will be created"
-  type        = string
-}
-
-# Add BGP configuration
-variable "bgp_announced_cidr" {
-  description = "CIDR block for BGP announced IPs"
   type        = string
 }
 
@@ -114,10 +108,4 @@ variable "enable_ingress_controller" {
   description = "Enable Cilium ingress controller"
   type        = bool
   default     = false
-}
-
-variable "cilium_lb_ip_pool" {
-  description = "IP pool for Cilium load balancer (for L2 announcements)"
-  type        = string
-  default     = ""
 }

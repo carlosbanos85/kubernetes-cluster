@@ -23,8 +23,8 @@ variable "common_tags" {
   type        = map(string)
 }
 
-variable "api_subnet_cidr" {
-  description = "CIDR block for the API subnet"
+variable "master_subnet_cidr" {
+  description = "CIDR block for the master subnet"
   type        = string
 }
 
@@ -33,7 +33,7 @@ variable "worker_subnet_cidr" {
   type        = string
 }
 
-variable "bgp_announced_cidr" {
-  description = "CIDR block for BGP announced IPs"
+variable "lb_subnet_cidr" {
+  description = "CIDR block for the load balancer subnet"
   type        = string
 }

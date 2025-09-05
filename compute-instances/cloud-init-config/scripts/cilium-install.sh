@@ -53,5 +53,17 @@ kubectl label node ${hostname} node-role.kubernetes.io/master=true --overwrite
 
 echo "Cilium installation completed successfully"
 
+# Add Gateway API CRD installation
+echo "Installing Gateway API CRDs..."
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/experimental-install.yaml
+
+# Wait for CRDs to be ready
+kubectl wait --for condition=established --timeout=60s crd/gatewayclasses.gateway.networking.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/gateways.gateway.networking.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/httproutes.gateway.networking.k8s.io
+
+echo "Gateway API CRDs installed successfully"
+
 # Save Cilium status for troubleshooting
 cilium status > /tmp/cilium-status.txt

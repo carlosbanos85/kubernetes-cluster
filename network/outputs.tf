@@ -23,32 +23,38 @@ output "vcn_dns_label" {
   value       = oci_core_vcn.kube_server_vcn.dns_label
 }
 
-output "api_subnet_id" {
-  description = "OCID of the API subnet"
-  value       = oci_core_subnet.kube_server_api_subnet.id
+output "master_subnet_id" {
+  description = "OCID of the master subnet"
+  value       = oci_core_subnet.master_subnet.id
 }
 
 output "worker_subnet_id" {
   description = "OCID of the worker subnet"
-  value       = oci_core_subnet.kube_server_worker_subnet.id
+  value       = oci_core_subnet.worker_subnet.id
 }
 
-output "api_subnet_cidr" {
-  description = "CIDR block of the API subnet"
-  value       = oci_core_subnet.kube_server_api_subnet.cidr_block
+output "lb_subnet_id" {
+  description = "OCID of the load balancer subnet"
+  value       = oci_core_subnet.lb_subnet.id
 }
 
-output "worker_subnet_cidr" {
-  description = "CIDR block of the worker subnet"
-  value       = oci_core_subnet.kube_server_worker_subnet.cidr_block
+output "gateway_http_backend_set_name" {
+  description = "Name of the Gateway HTTP backend set"
+  value       = oci_network_load_balancer_backend_set.gateway_http_backend_set.name
 }
 
-output "drg_id" {
-  description = "OCID of the Dynamic Routing Gateway"
-  value       = oci_core_drg.kube_server_drg.id
+output "gateway_https_backend_set_name" {
+  description = "Name of the Gateway HTTPS backend set"
+  value       = oci_network_load_balancer_backend_set.gateway_https_backend_set.name
 }
 
-output "drg_attachment_id" {
-  description = "OCID of the DRG attachment"
-  value       = oci_core_drg_attachment.kube_server_drg_attachment.id
+# Keep all your existing outputs...
+output "nlb_id" {
+  description = "OCID of the Network Load Balancer"
+  value       = oci_network_load_balancer_network_load_balancer.kube_server_nlb.id
+}
+
+output "nlb_public_ip" {
+  description = "Public IP of the Network Load Balancer"
+  value       = oci_network_load_balancer_network_load_balancer.kube_server_nlb.ip_addresses[0].ip_address
 }

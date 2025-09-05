@@ -10,7 +10,7 @@ resource "oci_core_instance" "kube_server_master" {
   }
 
   create_vnic_details {
-    subnet_id                 = var.api_subnet_id
+    subnet_id                 = var.master_subnet_id
     display_name              = "${local.master_hostname}-vnic"
     assign_public_ip          = true
     assign_private_dns_record = true
@@ -35,10 +35,9 @@ resource "oci_core_instance" "kube_server_master" {
       modules_config = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-cilium-modules.conf")
 
       # Load service configurations
-      k3s_service_config       = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
-      helm_service_config      = file("${path.root}/compute-instances/cloud-init-config/configs/helm-install.service")
-      cilium_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
-      bgp_setup_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/bgp-setup.service")
+      k3s_service_config    = file("${path.root}/compute-instances/cloud-init-config/configs/k3s-install.service")
+      helm_service_config   = file("${path.root}/compute-instances/cloud-init-config/configs/helm-install.service")
+      cilium_service_config = file("${path.root}/compute-instances/cloud-init-config/configs/cilium-install.service")
 
       # Load and template scripts
       k3s_install_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/k3s-install.sh", {
@@ -58,13 +57,6 @@ resource "oci_core_instance" "kube_server_master" {
         cluster_name               = var.project_name
         master_ip                  = var.master_hostname # Use hostname for internal communication
         ingress_controller_enabled = var.enable_ingress_controller
-        lb_ip_pool                 = var.cilium_lb_ip_pool != "" ? var.cilium_lb_ip_pool : "192.168.101.25"
-      })
-
-      bgp_setup_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/bgp-setup.sh", {
-        hostname           = var.master_hostname
-        bgp_announced_cidr = var.bgp_announced_cidr
-        cluster_name       = var.project_name
       })
     }))
   }

@@ -21,9 +21,9 @@ module "network" {
   project_name       = var.project_name
   environment        = var.environment
   vcn_cidr           = var.vcn_cidr
-  api_subnet_cidr    = var.api_subnet_cidr
+  master_subnet_cidr = var.master_subnet_cidr
   worker_subnet_cidr = var.worker_subnet_cidr
-  bgp_announced_cidr = var.bgp_announced_cidr
+  lb_subnet_cidr     = var.lb_subnet_cidr
   common_tags        = local.common_tags
 }
 
@@ -55,8 +55,58 @@ module "compute_instances" {
   enable_ingress_controller = var.enable_ingress_controller
 
   # Network resources from network module
-  api_subnet_id             = module.network.api_subnet_id
+  master_subnet_id          = module.network.master_subnet_id
   worker_subnet_id          = module.network.worker_subnet_id
-  bgp_announced_cidr        = var.bgp_announced_cidr
   network_security_group_id = module.network.network_security_group_id
+}
+
+resource "oci_network_load_balancer_backend" "master_http_backend" {
+  backend_set_name         = module.network.gateway_http_backend_set_name
+  network_load_balancer_id = module.network.nlb_id
+  port                     = 30080
+  target_id                = module.compute_instances.kube_server_master_id
+
+  depends_on = [
+    module.network,
+    module.compute_instances
+  ]
+}
+
+resource "oci_network_load_balancer_backend" "master_https_backend" {
+  backend_set_name         = module.network.gateway_https_backend_set_name
+  network_load_balancer_id = module.network.nlb_id
+  port                     = 30443
+  target_id                = module.compute_instances.kube_server_master_id
+
+  depends_on = [
+    module.network,
+    module.compute_instances
+  ]
+}
+
+# Worker node backends
+resource "oci_network_load_balancer_backend" "worker_http_backends" {
+  count                    = var.worker_count
+  backend_set_name         = module.network.gateway_http_backend_set_name
+  network_load_balancer_id = module.network.nlb_id
+  port                     = 30080
+  target_id                = module.compute_instances.kube_server_worker_ids[count.index]
+
+  depends_on = [
+    module.network,
+    module.compute_instances
+  ]
+}
+
+resource "oci_network_load_balancer_backend" "worker_https_backends" {
+  count                    = var.worker_count
+  backend_set_name         = module.network.gateway_https_backend_set_name
+  network_load_balancer_id = module.network.nlb_id
+  port                     = 30443
+  target_id                = module.compute_instances.kube_server_worker_ids[count.index]
+
+  depends_on = [
+    module.network,
+    module.compute_instances
+  ]
 }
