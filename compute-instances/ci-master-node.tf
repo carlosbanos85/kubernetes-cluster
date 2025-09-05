@@ -63,11 +63,7 @@ resource "oci_core_instance" "kube_server_master" {
 
       bgp_setup_script = templatefile("${path.root}/compute-instances/cloud-init-config/scripts/bgp-setup.sh", {
         hostname           = var.master_hostname
-        vcn_cidr           = var.vcn_cidr
         bgp_announced_cidr = var.bgp_announced_cidr
-        local_asn          = local.bgp_config.local_asn
-        drg_asn            = local.bgp_config.drg_asn
-        drg_peer_ip        = local.bgp_config.drg_peer_ip
         cluster_name       = var.project_name
       })
     }))

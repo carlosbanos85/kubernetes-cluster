@@ -129,6 +129,8 @@ runcmd:
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
 
+  - iptables -I INPUT -p tcp --dport 4244 -j ACCEPT # Cilium Hubble (only this one)
+
   # Add master hostname resolution
   - echo "${master_ip} ${master_hostname}" >> /etc/hosts
 
@@ -138,6 +140,8 @@ runcmd:
   # Core ports
   - ufw allow 22/tcp # SSH
   - ufw allow 10250/tcp # Kubelet API
+
+  - ufw allow out 6443/tcp
 
   # Cilium ports
   - ufw allow 4240/tcp # Cilium health checks

@@ -20,14 +20,26 @@ helm repo add cilium https://helm.cilium.io/
 helm repo update
 
 # Wait for k3s to be fully ready
-echo "Installing Cilium..."systemctl status k3s
+echo "Installing Cilium..."
 
-# Helm install cilium
-helm install cilium cilium/cilium \
-    -n kube-system \
-    -f /tmp/cilium/values.yaml \
-    --version ${cilium_version} \
-    --set operator.replicas=1
+systemctl status k3s
+
+# Check if Cilium is already installed
+if helm list -n kube-system | grep -q cilium; then
+    echo "Cilium already installed, upgrading..."
+    helm upgrade cilium cilium/cilium \
+        -n kube-system \
+        -f /tmp/cilium/values.yaml \
+        --version ${cilium_version} \
+        --set operator.replicas=1
+else
+    echo "Installing new Cilium release..."
+    helm install cilium cilium/cilium \
+        -n kube-system \
+        -f /tmp/cilium/values.yaml \
+        --version ${cilium_version} \
+        --set operator.replicas=1
+fi
 
 # Wait for Cilium to be ready
 echo "Waiting for Cilium to be ready..."

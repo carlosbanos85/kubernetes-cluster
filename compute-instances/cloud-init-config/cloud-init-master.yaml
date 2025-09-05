@@ -90,8 +90,16 @@ runcmd:
   # Apply sysctl settings
   - sysctl -p /etc/sysctl.d/k3s-cilium.conf
 
+  - iptables -I INPUT -p tcp --dport 6443 -j ACCEPT # Kubernetes API server
+  - iptables -I INPUT -p tcp --dport 4244 -j ACCEPT # Cilium Hubble
+  - iptables -I INPUT -p tcp --dport 4244 -j ACCEPT # Cilium Hubble gRPC
+  - iptables -I INPUT -p tcp --dport 4240 -j ACCEPT # Cilium health checks
+  - iptables -I INPUT -p tcp --dport 4245 -j ACCEPT # Hubble Relay
+
   # Complete firewall configuration for K3s + Cilium
   - ufw --force enable
+
+  - ufw allow 53/udp # CoreDNS
 
   # Core K3s ports
   - ufw allow 22/tcp # SSH
@@ -135,6 +143,40 @@ runcmd:
   # 2. Install Helm
   - systemctl enable helm-install.service
   - systemctl start helm-install.service
+
+  - |
+    while ! kubectl get configmap coredns -n kube-system >/dev/null 2>&1; do
+      echo "Waiting for CoreDNS configmap..."
+      sleep 10
+    done
+
+    kubectl patch configmap coredns -n kube-system --patch='
+    data:
+      Corefile: |
+        .:53 {
+            errors
+            health
+            ready
+            kubernetes cluster.local in-addr.arpa ip6.arpa {
+              pods insecure
+              fallthrough in-addr.arpa ip6.arpa
+            }
+            hosts /etc/coredns/NodeHosts {
+              ttl 60
+              reload 15s
+              fallthrough
+            }
+            prometheus :9153
+            forward . /etc/resolv.conf
+            cache 30
+            loop
+            reload
+            loadbalance
+            import /etc/coredns/custom/*.override
+        }
+        import /etc/coredns/custom/*.server'
+
+    kubectl rollout restart deployment/coredns -n kube-system
 
   # 3. Install Cilium with BGP configuration
   - systemctl enable cilium-install.service
