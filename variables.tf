@@ -121,12 +121,6 @@ variable "cilium_version" {
   type        = string
 }
 
-variable "enable_ingress_controller" {
-  description = "Enable Cilium ingress controller"
-  type        = bool
-  default     = false
-}
-
 variable "master_subnet_cidr" {
   description = "CIDR block for the master subnet"
   type        = string

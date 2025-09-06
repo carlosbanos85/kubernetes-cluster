@@ -32,7 +32,7 @@ l2announcements:
 
 # Disable ingress controller for Gateway API
 ingressController:
-  enabled: ${ingress_controller_enabled}
+  enabled: false
 
 externalIPs:
   enabled: true

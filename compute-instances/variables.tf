@@ -103,9 +103,3 @@ variable "cilium_version" {
   description = "Cilium version for Helm install"
   type        = string
 }
-
-variable "enable_ingress_controller" {
-  description = "Enable Cilium ingress controller"
-  type        = bool
-  default     = false
-}

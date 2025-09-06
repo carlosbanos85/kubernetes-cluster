@@ -54,9 +54,8 @@ resource "oci_core_instance" "kube_server_master" {
 
       # Template the Cilium values.yaml file
       cilium_values_config = templatefile("${path.root}/compute-instances/cloud-init-config/configs/cilium-values.yaml", {
-        cluster_name               = var.project_name
-        master_ip                  = var.master_hostname # Use hostname for internal communication
-        ingress_controller_enabled = var.enable_ingress_controller
+        cluster_name = var.project_name
+        master_ip    = var.master_hostname # Use hostname for internal communication
       })
     }))
   }

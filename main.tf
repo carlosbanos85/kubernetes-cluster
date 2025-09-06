@@ -35,24 +35,23 @@ module "compute_instances" {
   depends_on = [module.network]
 
   # Pass variables to compute module
-  compartment_id            = var.compartment_id
-  project_name              = var.project_name
-  environment               = var.environment
-  availability_domain       = local.availability_domain
-  instance_image_id         = local.instance_image
-  instance_shape            = var.instance_shape
-  instance_ocpus            = var.instance_ocpus
-  instance_memory_gb        = var.instance_memory_gb
-  boot_volume_size_gb       = var.boot_volume_size_gb
-  worker_count              = var.worker_count
-  ssh_public_key            = var.ssh_public_key
-  cluster_domain            = var.cluster_domain
-  master_hostname           = var.master_hostname
-  worker_hostname           = var.worker_hostname
-  cilium_version            = var.cilium_version
-  vcn_cidr                  = var.vcn_cidr
-  common_tags               = local.common_tags
-  enable_ingress_controller = var.enable_ingress_controller
+  compartment_id      = var.compartment_id
+  project_name        = var.project_name
+  environment         = var.environment
+  availability_domain = local.availability_domain
+  instance_image_id   = local.instance_image
+  instance_shape      = var.instance_shape
+  instance_ocpus      = var.instance_ocpus
+  instance_memory_gb  = var.instance_memory_gb
+  boot_volume_size_gb = var.boot_volume_size_gb
+  worker_count        = var.worker_count
+  ssh_public_key      = var.ssh_public_key
+  cluster_domain      = var.cluster_domain
+  master_hostname     = var.master_hostname
+  worker_hostname     = var.worker_hostname
+  cilium_version      = var.cilium_version
+  vcn_cidr            = var.vcn_cidr
+  common_tags         = local.common_tags
 
   # Network resources from network module
   master_subnet_id          = module.network.master_subnet_id

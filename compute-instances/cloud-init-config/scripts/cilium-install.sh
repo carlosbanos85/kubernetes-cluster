@@ -15,6 +15,18 @@ rm cilium-linux-$${CLI_ARCH}.tar.gz{,.sha256sum}
 MASTER_IP=$(hostname -I | awk '{print $1}')
 echo "Master IP: $MASTER_IP"
 
+# Add Gateway API CRD installation
+echo "Installing Gateway API CRDs..."
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
+kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/experimental-install.yaml
+
+# Wait for CRDs to be ready
+kubectl wait --for condition=established --timeout=60s crd/gatewayclasses.gateway.networking.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/gateways.gateway.networking.k8s.io
+kubectl wait --for condition=established --timeout=60s crd/httproutes.gateway.networking.k8s.io
+
+echo "Gateway API CRDs installed successfully"
+
 # Add Cilium Helm repository
 helm repo add cilium https://helm.cilium.io/
 helm repo update
@@ -52,18 +64,6 @@ cilium status --wait
 kubectl label node ${hostname} node-role.kubernetes.io/master=true --overwrite
 
 echo "Cilium installation completed successfully"
-
-# Add Gateway API CRD installation
-echo "Installing Gateway API CRDs..."
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml
-kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/experimental-install.yaml
-
-# Wait for CRDs to be ready
-kubectl wait --for condition=established --timeout=60s crd/gatewayclasses.gateway.networking.k8s.io
-kubectl wait --for condition=established --timeout=60s crd/gateways.gateway.networking.k8s.io
-kubectl wait --for condition=established --timeout=60s crd/httproutes.gateway.networking.k8s.io
-
-echo "Gateway API CRDs installed successfully"
 
 # Save Cilium status for troubleshooting
 cilium status > /tmp/cilium-status.txt
