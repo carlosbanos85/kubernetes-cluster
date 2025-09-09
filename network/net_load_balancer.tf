@@ -21,13 +21,9 @@ resource "oci_network_load_balancer_backend_set" "gateway_http_backend_set" {
   policy                   = "FIVE_TUPLE"
 
   health_checker {
-    protocol           = "HTTP"
-    port               = 30080
-    url_path           = "/healthz"
-    return_code        = 200
-    timeout_in_millis  = 3000
-    interval_in_millis = 10000
-    retries            = 3
+    protocol = "TCP"
+    port     = 30080
+    url_path = "/healthz"
   }
 
   is_preserve_source = true

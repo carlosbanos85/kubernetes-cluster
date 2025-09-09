@@ -37,6 +37,12 @@ ingressController:
 externalIPs:
   enabled: true
 
+# Enable LB-IPAM features
+loadBalancer:
+  l7:
+    backend: envoy
+  acceleration: best-effort
+
 ipam:
   mode: kubernetes
   operator:

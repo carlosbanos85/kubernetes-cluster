@@ -138,3 +138,13 @@ variable "lb_subnet_cidr" {
   type        = string
   default     = "10.0.3.0/24"
 }
+
+variable "bgp_announced_cidr" {
+  description = "CIDR block for BGP announced range (used for LB-IPAM)"
+  type        = string
+  default     = "10.0.100.0/24"
+  validation {
+    condition     = can(cidrhost(var.bgp_announced_cidr, 0))
+    error_message = "BGP announced CIDR must be a valid IPv4 CIDR block."
+  }
+}

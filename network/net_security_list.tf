@@ -94,8 +94,8 @@ resource "oci_core_security_list" "worker_security_list" {
     protocol    = "6"
     description = "Gateway NodePorts from LB"
     tcp_options {
-      min = 30080
-      max = 30443
+      min = 30000
+      max = 32767
     }
   }
 

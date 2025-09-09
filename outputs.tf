@@ -229,9 +229,9 @@ output "admin_info" {
 output "nlb_backends" {
   description = "NLB backend configuration"
   value = {
-    master_http_backend   = oci_network_load_balancer_backend.master_http_backend.id
-    master_https_backend  = oci_network_load_balancer_backend.master_https_backend.id
-    worker_http_backends  = oci_network_load_balancer_backend.worker_http_backends[*].id
-    worker_https_backends = oci_network_load_balancer_backend.worker_https_backends[*].id
+    master_http_backend  = oci_network_load_balancer_backend.master_http_backend.id
+    master_https_backend = oci_network_load_balancer_backend.master_https_backend.id
+    # worker_http_backends  = oci_network_load_balancer_backend.worker_http_backends[*].id
+    # worker_https_backends = oci_network_load_balancer_backend.worker_https_backends[*].id
   }
 }

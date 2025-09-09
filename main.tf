@@ -62,7 +62,7 @@ module "compute_instances" {
 resource "oci_network_load_balancer_backend" "master_http_backend" {
   backend_set_name         = module.network.gateway_http_backend_set_name
   network_load_balancer_id = module.network.nlb_id
-  port                     = 30080
+  port                     = 30109
   target_id                = module.compute_instances.kube_server_master_id
 
   depends_on = [
@@ -74,7 +74,7 @@ resource "oci_network_load_balancer_backend" "master_http_backend" {
 resource "oci_network_load_balancer_backend" "master_https_backend" {
   backend_set_name         = module.network.gateway_https_backend_set_name
   network_load_balancer_id = module.network.nlb_id
-  port                     = 30443
+  port                     = 30458
   target_id                = module.compute_instances.kube_server_master_id
 
   depends_on = [
@@ -84,28 +84,60 @@ resource "oci_network_load_balancer_backend" "master_https_backend" {
 }
 
 # Worker node backends
-resource "oci_network_load_balancer_backend" "worker_http_backends" {
-  count                    = var.worker_count
-  backend_set_name         = module.network.gateway_http_backend_set_name
-  network_load_balancer_id = module.network.nlb_id
-  port                     = 30080
-  target_id                = module.compute_instances.kube_server_worker_ids[count.index]
+# resource "oci_network_load_balancer_backend" "worker_http_backends" {
+#   count                    = var.worker_count
+#   backend_set_name         = module.network.gateway_http_backend_set_name
+#   network_load_balancer_id = module.network.nlb_id
+#   port                     = 30109
+#   target_id                = module.compute_instances.kube_server_worker_ids[count.index]
 
-  depends_on = [
-    module.network,
-    module.compute_instances
-  ]
+#   depends_on = [
+#     module.network,
+#     module.compute_instances
+#   ]
+# }
+
+# resource "oci_network_load_balancer_backend" "worker_https_backends" {
+#   count                    = var.worker_count
+#   backend_set_name         = module.network.gateway_https_backend_set_name
+#   network_load_balancer_id = module.network.nlb_id
+#   port                     = 30458
+#   target_id                = module.compute_instances.kube_server_worker_ids[count.index]
+
+#   depends_on = [
+#     module.network,
+#     module.compute_instances
+#   ]
+# }
+
+## LB Tests
+
+resource "oci_core_instance" "test_lb_subnet" {
+  availability_domain = local.availability_domain
+  compartment_id      = var.compartment_id
+  display_name        = "test-lb-subnet"
+  shape               = "VM.Standard.A1.Flex"
+
+  shape_config {
+    ocpus         = 1
+    memory_in_gbs = 1
+  }
+
+  create_vnic_details {
+    subnet_id        = module.network.lb_subnet_id
+    assign_public_ip = true
+  }
+
+  source_details {
+    source_type = "image"
+    source_id   = local.instance_image
+  }
+
+  metadata = {
+    ssh_authorized_keys = var.ssh_public_key
+  }
 }
 
-resource "oci_network_load_balancer_backend" "worker_https_backends" {
-  count                    = var.worker_count
-  backend_set_name         = module.network.gateway_https_backend_set_name
-  network_load_balancer_id = module.network.nlb_id
-  port                     = 30443
-  target_id                = module.compute_instances.kube_server_worker_ids[count.index]
-
-  depends_on = [
-    module.network,
-    module.compute_instances
-  ]
+output "test_instance_ip" {
+  value = oci_core_instance.test_lb_subnet.public_ip
 }
