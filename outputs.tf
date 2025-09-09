@@ -6,31 +6,11 @@ output "network" {
     vcn_cidr                  = module.network.vcn_cidr
     master_subnet_id          = module.network.master_subnet_id
     worker_subnet_id          = module.network.worker_subnet_id
-    lb_subnet_id              = module.network.lb_subnet_id
     internet_gateway_id       = module.network.internet_gateway_id
     network_security_group_id = module.network.network_security_group_id
     vcn_dns_label             = module.network.vcn_dns_label
-    nlb_public_ip             = module.network.nlb_public_ip
-    nlb_id                    = module.network.nlb_id
-  }
-}
-
-# Gateway API Access Information
-output "gateway_api_endpoints" {
-  description = "Gateway API access endpoints"
-  value = {
-    nlb_public_ip  = module.network.nlb_public_ip
-    http_endpoint  = "http://${module.network.nlb_public_ip}"
-    https_endpoint = "https://${module.network.nlb_public_ip}"
-  }
-}
-
-output "gateway_api_setup_commands" {
-  description = "Commands to set up Gateway API resources"
-  value = {
-    install_crds = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.3.0/standard-install.yaml"
-    check_status = "kubectl get gatewayclasses,gateways,httproutes -o wide"
-    test_gateway = "curl -H 'Host: api.example.com' http://${module.network.nlb_public_ip}"
+    master_security_list_id   = module.network.master_security_list_id
+    worker_security_list_id   = module.network.worker_security_list_id
   }
 }
 
@@ -94,9 +74,32 @@ output "kubeconfig_command" {
   value       = "scp ubuntu@${module.compute_instances.kube_server_master_public_ip}:/etc/rancher/k3s/k3s.yaml ~/.kube/config && sed -i 's/127.0.0.1/${module.compute_instances.kube_server_master_public_ip}/g' ~/.kube/config"
 }
 
-# Resource Summary
+# OCI CCM Information
+output "oci_ccm_setup_commands" {
+  description = "Commands to verify OCI Cloud Controller Manager"
+  value = {
+    check_ccm_pods      = "kubectl get pods -n kube-system -l k8s-app=oci-cloud-controller-manager"
+    check_ccm_logs      = "kubectl logs -n kube-system -l k8s-app=oci-cloud-controller-manager"
+    check_node_labels   = "kubectl get nodes --show-labels"
+    check_loadbalancers = "kubectl get svc --all-namespaces -o wide"
+  }
+}
+
+# LoadBalancer Services Information
+output "loadbalancer_examples" {
+  description = "Example commands for LoadBalancer services"
+  value = {
+    deploy_nginx     = "kubectl apply -f applications/nginx-loadbalancer.yaml"
+    deploy_rust      = "kubectl apply -f applications/rust-loadbalancer.yaml"
+    deploy_ingress   = "kubectl apply -f applications/ingress-with-loadbalancer.yaml"
+    check_services   = "kubectl get svc -o wide"
+    get_external_ips = "kubectl get svc -o jsonpath='{.items[?(@.spec.type==\"LoadBalancer\")].status.loadBalancer.ingress[0].ip}'"
+  }
+}
+
+# Cluster Summary
 output "cluster_summary" {
-  description = "Comprehensive summary of the K3s cluster resources"
+  description = "Comprehensive summary of the K3s cluster with OCI CCM"
   value = {
     cluster_name        = var.project_name
     environment         = var.environment
@@ -121,8 +124,10 @@ output "cluster_summary" {
     master_subnet_cidr = var.master_subnet_cidr
     worker_subnet_cidr = var.worker_subnet_cidr
 
-    # K3s configuration
-    cluster_domain = var.cluster_domain
+    # Architecture
+    load_balancer_type = "OCI Cloud Controller Manager (CCM)"
+    cni                = "Cilium ${var.cilium_version}"
+    cluster_domain     = var.cluster_domain
 
     # Free tier utilization
     free_tier_ocpu_usage    = "${(1 + var.worker_count) * var.instance_ocpus}/4"
@@ -148,11 +153,19 @@ output "cluster_status_commands" {
     cluster_info  = "kubectl cluster-info"
 
     # Service status
-    master_kube_server_status = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo systemctl status k3s'"
-    worker_kube_server_status = [
+    master_k3s_status = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo systemctl status k3s'"
+    worker_k3s_status = [
       for ip in module.compute_instances.kube_server_workers_public_ips :
       "ssh ubuntu@${ip} 'sudo systemctl status k3s-agent'"
     ]
+
+    # OCI CCM status
+    oci_ccm_status = "kubectl get pods -n kube-system -l k8s-app=oci-cloud-controller-manager"
+    oci_ccm_logs   = "kubectl logs -n kube-system -l k8s-app=oci-cloud-controller-manager"
+
+    # Load Balancer services
+    check_services     = "kubectl get svc --all-namespaces -o wide"
+    check_external_ips = "kubectl get svc -o jsonpath='{.items[?(@.spec.type==\"LoadBalancer\")].status.loadBalancer.ingress[0].ip}'"
 
     # Logs
     master_logs = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip} 'sudo journalctl -u k3s -f'"
@@ -165,42 +178,33 @@ output "cluster_status_commands" {
 
 # Deployment Information
 output "deployment_info" {
-  description = "Important information about the deployment and next steps"
+  description = "Important information about the OCI CCM deployment and next steps"
   value = {
-    cluster_ready_time          = "Cluster will be ready in approximately 5-10 minutes after apply"
-    access_instructions         = "Run: eval \"$(terraform output -raw kubeconfig_command)\" to configure kubectl"
-    troubleshooting_logs        = "/var/log/cloud-init-output.log on each instance"
-    kube_server_config_location = "/etc/rancher/k3s/k3s.yaml on master node"
-    node_token_location         = "/var/lib/rancher/k3s/server/node-token on master node"
-    oci_config_profile          = "Using OCI config profile: [US]"
+    architecture_change     = "Moved from Gateway API + NodePort to OCI Cloud Controller Manager with LoadBalancer services"
+    cluster_ready_time      = "Cluster will be ready in approximately 10-15 minutes after apply (includes OCI CCM setup)"
+    access_instructions     = "Run: eval \"$(terraform output -raw kubeconfig_command)\" to configure kubectl"
+    troubleshooting_logs    = "/var/log/cloud-init-output.log on each instance"
+    k3s_config_location     = "/etc/rancher/k3s/k3s.yaml on master node"
+    oci_ccm_config_location = "/tmp/oci/cloud-config.yaml on master node"
 
     # Quick start commands
     quick_commands = {
-      check_nodes    = "kubectl get nodes"
-      check_pods     = "kubectl get pods -A"
-      ssh_master     = "ssh ubuntu@${module.compute_instances.kube_server_master_public_ip}"
-      health_check   = "./scripts/cluster-health.sh all"
-      backup_cluster = "./scripts/backup-restore.sh full"
+      check_cluster       = "kubectl get nodes"
+      check_oci_ccm       = "kubectl get pods -n kube-system -l k8s-app=oci-cloud-controller-manager"
+      deploy_nginx        = "kubectl apply -f applications/nginx-loadbalancer.yaml"
+      check_loadbalancers = "kubectl get svc -o wide"
+      get_external_ips    = "kubectl get svc -o jsonpath='{.items[?(@.spec.type==\"LoadBalancer\")].status.loadBalancer.ingress[0].ip}'"
     }
 
     # Next steps
     recommended_next_steps = [
       "1. Verify cluster: kubectl get nodes",
-      "2. Deploy test app: kubectl create deployment nginx --image=nginx",
-      "3. Install ingress: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v1.8.2/deploy/static/provider/cloud/deploy.yaml",
-      "4. Set up monitoring: echo 'enable_monitoring = true' >> terraform.tfvars && terraform apply",
-      "5. Create backup: ./scripts/backup-restore.sh full"
+      "2. Check OCI CCM: kubectl get pods -n kube-system -l k8s-app=oci-cloud-controller-manager",
+      "3. Deploy test app: kubectl apply -f applications/nginx-loadbalancer.yaml",
+      "4. Check external IP: kubectl get svc nginx-loadbalancer",
+      "5. Test LoadBalancer: curl <EXTERNAL-IP>",
+      "6. Deploy ingress controller: kubectl apply -f applications/ingress-with-loadbalancer.yaml"
     ]
-  }
-}
-
-# URLs and Endpoints (when monitoring is enabled)
-output "service_endpoints" {
-  description = "Service endpoints for various cluster services"
-  value = {
-    kube_server_api = "https://${module.compute_instances.kube_server_master_public_ip}:6443"
-    grafana         = "http://${module.compute_instances.kube_server_master_public_ip}:30300 (when monitoring enabled)"
-    prometheus      = "http://${module.compute_instances.kube_server_master_public_ip}:30900 (when monitoring enabled)"
   }
 }
 
@@ -211,6 +215,7 @@ output "admin_info" {
     terraform_workspace = terraform.workspace
     created_at          = timestamp()
     managed_by          = "kube-server-oci-terraform"
+    architecture        = "K3s + Cilium + OCI CCM"
 
     # Resource identifiers
     compartment_ocid = var.compartment_id
@@ -223,15 +228,6 @@ output "admin_info" {
     environment    = var.environment
     instance_shape = var.instance_shape
     worker_count   = var.worker_count
-  }
-}
-
-output "nlb_backends" {
-  description = "NLB backend configuration"
-  value = {
-    master_http_backend  = oci_network_load_balancer_backend.master_http_backend.id
-    master_https_backend = oci_network_load_balancer_backend.master_https_backend.id
-    # worker_http_backends  = oci_network_load_balancer_backend.worker_http_backends[*].id
-    # worker_https_backends = oci_network_load_balancer_backend.worker_https_backends[*].id
+    cilium_version = var.cilium_version
   }
 }

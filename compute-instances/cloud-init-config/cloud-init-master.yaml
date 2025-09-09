@@ -104,11 +104,13 @@ runcmd:
   - ufw allow 8472/udp # VXLAN tunnel endpoint
   - ufw allow 9962:9965/tcp # Cilium agent health & metrics
 
-  # Application ports
+  # OCI Load Balancer health checks
+  - ufw allow 10256/tcp # Kubernetes health check endpoint
+
+  # Application ports (will be handled by OCI LB)
   - ufw allow 80/tcp # HTTP
   - ufw allow 8080/tcp # HTTP
   - ufw allow 443/tcp # HTTPS
-  - ufw allow 30000:32767/tcp # NodePort range
 
   # Internal cluster communication (from VCN CIDR)
   - ufw allow from 10.0.0.0/8 to any
@@ -118,7 +120,7 @@ runcmd:
   # Enable and start services in order
   - systemctl daemon-reload
 
-  # Enable and start services
+  # 1. Install K3s with cloud provider external
   - systemctl enable k3s-install.service
   - systemctl start k3s-install.service
 
@@ -165,7 +167,7 @@ runcmd:
 
     kubectl rollout restart deployment/coredns -n kube-system
 
-  # 3. Install Cilium with BGP configuration
+  # 3. Install Cilium
   - systemctl enable cilium-install.service
   - systemctl start cilium-install.service
 

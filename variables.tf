@@ -44,10 +44,6 @@ variable "vcn_cidr" {
 variable "instance_shape" {
   description = "Shape of the compute instances"
   type        = string
-  # validation {
-  #   condition     = contains(["VM.Standard.A1.Flex"], var.instance_shape)
-  #   error_message = "Instance shape must be VM.Standard.A1.Flex."
-  # }
 }
 
 variable "instance_ocpus" {
@@ -131,20 +127,4 @@ variable "worker_subnet_cidr" {
   description = "CIDR block for the worker subnet"
   type        = string
   default     = "10.0.2.0/24"
-}
-
-variable "lb_subnet_cidr" {
-  description = "CIDR block for the load balancer subnet"
-  type        = string
-  default     = "10.0.3.0/24"
-}
-
-variable "bgp_announced_cidr" {
-  description = "CIDR block for BGP announced range (used for LB-IPAM)"
-  type        = string
-  default     = "10.0.100.0/24"
-  validation {
-    condition     = can(cidrhost(var.bgp_announced_cidr, 0))
-    error_message = "BGP announced CIDR must be a valid IPv4 CIDR block."
-  }
 }

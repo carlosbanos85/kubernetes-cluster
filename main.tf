@@ -23,7 +23,6 @@ module "network" {
   vcn_cidr           = var.vcn_cidr
   master_subnet_cidr = var.master_subnet_cidr
   worker_subnet_cidr = var.worker_subnet_cidr
-  lb_subnet_cidr     = var.lb_subnet_cidr
   common_tags        = local.common_tags
 }
 
@@ -57,87 +56,10 @@ module "compute_instances" {
   master_subnet_id          = module.network.master_subnet_id
   worker_subnet_id          = module.network.worker_subnet_id
   network_security_group_id = module.network.network_security_group_id
-}
 
-resource "oci_network_load_balancer_backend" "master_http_backend" {
-  backend_set_name         = module.network.gateway_http_backend_set_name
-  network_load_balancer_id = module.network.nlb_id
-  port                     = 30109
-  target_id                = module.compute_instances.kube_server_master_id
-
-  depends_on = [
-    module.network,
-    module.compute_instances
-  ]
-}
-
-resource "oci_network_load_balancer_backend" "master_https_backend" {
-  backend_set_name         = module.network.gateway_https_backend_set_name
-  network_load_balancer_id = module.network.nlb_id
-  port                     = 30458
-  target_id                = module.compute_instances.kube_server_master_id
-
-  depends_on = [
-    module.network,
-    module.compute_instances
-  ]
-}
-
-# Worker node backends
-# resource "oci_network_load_balancer_backend" "worker_http_backends" {
-#   count                    = var.worker_count
-#   backend_set_name         = module.network.gateway_http_backend_set_name
-#   network_load_balancer_id = module.network.nlb_id
-#   port                     = 30109
-#   target_id                = module.compute_instances.kube_server_worker_ids[count.index]
-
-#   depends_on = [
-#     module.network,
-#     module.compute_instances
-#   ]
-# }
-
-# resource "oci_network_load_balancer_backend" "worker_https_backends" {
-#   count                    = var.worker_count
-#   backend_set_name         = module.network.gateway_https_backend_set_name
-#   network_load_balancer_id = module.network.nlb_id
-#   port                     = 30458
-#   target_id                = module.compute_instances.kube_server_worker_ids[count.index]
-
-#   depends_on = [
-#     module.network,
-#     module.compute_instances
-#   ]
-# }
-
-## LB Tests
-
-resource "oci_core_instance" "test_lb_subnet" {
-  availability_domain = local.availability_domain
-  compartment_id      = var.compartment_id
-  display_name        = "test-lb-subnet"
-  shape               = "VM.Standard.A1.Flex"
-
-  shape_config {
-    ocpus         = 1
-    memory_in_gbs = 1
-  }
-
-  create_vnic_details {
-    subnet_id        = module.network.lb_subnet_id
-    assign_public_ip = true
-  }
-
-  source_details {
-    source_type = "image"
-    source_id   = local.instance_image
-  }
-
-  metadata = {
-    ssh_authorized_keys = var.ssh_public_key
-  }
-}
-
-output "test_instance_ip" {
-  value = oci_core_instance.test_lb_subnet.public_ip
+  # OCI CCM Configuration
+  region                  = var.region
+  vcn_id                  = module.network.vcn_id
+  master_security_list_id = module.network.master_security_list_id
+  worker_security_list_id = module.network.worker_security_list_id
 }

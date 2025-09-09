@@ -17,7 +17,9 @@ curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="server" sh -s - \
   --node-name ${hostname} \
   --cluster-init \
   --cluster-domain="${cluster_domain}" \
-  --write-kubeconfig-mode 644
+  --write-kubeconfig-mode 644 \
+  --kubelet-arg="cloud-provider=external" \
+  --kubelet-arg="provider-id=oci://\$(curl -s http://169.254.169.254/opc/v1/instance/id)"
 
 # Wait for k3s to be ready
 until kubectl get nodes &> /dev/null; do

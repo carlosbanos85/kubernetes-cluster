@@ -103,3 +103,24 @@ variable "cilium_version" {
   description = "Cilium version for Helm install"
   type        = string
 }
+
+# OCI CCM Configuration
+variable "region" {
+  description = "OCI Region"
+  type        = string
+}
+
+variable "vcn_id" {
+  description = "OCID of the VCN"
+  type        = string
+}
+
+variable "master_security_list_id" {
+  description = "OCID of the master security list"
+  type        = string
+}
+
+variable "worker_security_list_id" {
+  description = "OCID of the worker security list"
+  type        = string
+}

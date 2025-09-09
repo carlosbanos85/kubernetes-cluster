@@ -32,8 +32,3 @@ variable "worker_subnet_cidr" {
   description = "CIDR block for the worker subnet"
   type        = string
 }
-
-variable "lb_subnet_cidr" {
-  description = "CIDR block for the load balancer subnet"
-  type        = string
-}

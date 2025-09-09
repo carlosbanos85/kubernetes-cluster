@@ -33,28 +33,12 @@ output "worker_subnet_id" {
   value       = oci_core_subnet.worker_subnet.id
 }
 
-output "lb_subnet_id" {
-  description = "OCID of the load balancer subnet"
-  value       = oci_core_subnet.lb_subnet.id
+output "master_security_list_id" {
+  description = "OCID of the master security list"
+  value       = oci_core_security_list.master_security_list.id
 }
 
-output "gateway_http_backend_set_name" {
-  description = "Name of the Gateway HTTP backend set"
-  value       = oci_network_load_balancer_backend_set.gateway_http_backend_set.name
-}
-
-output "gateway_https_backend_set_name" {
-  description = "Name of the Gateway HTTPS backend set"
-  value       = oci_network_load_balancer_backend_set.gateway_https_backend_set.name
-}
-
-# Keep all your existing outputs...
-output "nlb_id" {
-  description = "OCID of the Network Load Balancer"
-  value       = oci_network_load_balancer_network_load_balancer.kube_server_nlb.id
-}
-
-output "nlb_public_ip" {
-  description = "Public IP of the Network Load Balancer"
-  value       = oci_network_load_balancer_network_load_balancer.kube_server_nlb.ip_addresses[0].ip_address
+output "worker_security_list_id" {
+  description = "OCID of the worker security list"
+  value       = oci_core_security_list.worker_security_list.id
 }

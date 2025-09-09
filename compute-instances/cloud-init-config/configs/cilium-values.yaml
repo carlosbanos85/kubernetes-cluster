@@ -5,11 +5,21 @@ cluster:
 # Gateway API for advanced routing
 gatewayAPI:
   enabled: true
+  # Enable external LoadBalancer support
+  hostNetwork:
+    enabled: false
+  # Configure service type for cloud load balancer
+  serviceType: LoadBalancer
 
 # Enable Envoy for L7 features
 envoy:
   enabled: true
   rollOutPods: true
+  # Configure Envoy to work with cloud load balancers
+  service:
+    type: LoadBalancer
+    # annotations will be applied to the LoadBalancer service
+    annotations: {}
   securityContext:
     capabilities:
       keepCapNetBindService: true
@@ -39,6 +49,7 @@ externalIPs:
 
 # Enable LB-IPAM features
 loadBalancer:
+  mode: "snat"
   l7:
     backend: envoy
   acceleration: best-effort
